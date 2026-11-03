@@ -40,5 +40,10 @@
         }
       ]
     }
+  },
+  "infrastructure": {
+    "commands": {
+      "postdeploy": "node server.js"
+    }
   }
 }

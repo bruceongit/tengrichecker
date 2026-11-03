@@ -615,6 +615,7 @@ async function initializeServices() {
 }
 
 // Start server
+console.log(`[Startup] Starting server on port ${PORT}...`);
 const server = app.listen(PORT, () => {
     console.log(`
 ╔════════════════════════════════════════════════════════════╗
@@ -630,9 +631,15 @@ const server = app.listen(PORT, () => {
 ╚════════════════════════════════════════════════════════════╝
 `);
     console.log(`Server is ready to serve requests...`);
+    console.log(`[Startup] Server listening on port ${PORT}`);
 
     // Initialize services
-    initializeServices();
+    try {
+        await initializeServices();
+        console.log('[Startup] Services initialized successfully');
+    } catch (initError) {
+        console.error('[Startup] Service initialization error:', initError);
+    }
 
     // Schedule daily archival if enabled
     if (process.env.ENABLE_ARCHIVE !== 'false') {

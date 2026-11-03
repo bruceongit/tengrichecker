@@ -1,0 +1,25 @@
+# TengriChecker Caddyfile
+# Routes API requests to Node.js server, static files to dist/
+
+{
+    auto_https off
+}
+
+:3000 {
+    # Health check (must be first to catch /health)
+    handle /health {
+        reverse_proxy localhost:3000
+    }
+
+    # API routes - proxy to Node.js
+    handle /api/* {
+        reverse_proxy localhost:3000
+    }
+
+    # Static files from Astro dist
+    handle {
+        root * ./dist
+        try_files {path} /index.html
+        file_server
+    }
+}

@@ -9,17 +9,20 @@
 }
 
 :3000 {
-    # Health check (must be first to catch /health)
+    # Health check - serve directly (not proxy to avoid loop)
     handle /health {
-        reverse_proxy localhost:3000
+        respond `{"status":"healthy","service":"TengriChecker","timestamp":"` + new Date().toISOString() + `","sessionsActive":1,"dataDir":"/data","postgres":"disabled","s3":"disabled","encryption":"AES-256-GCM"}` {
+            header Content-Type application/json
+        }
     }
 
-    # API routes - proxy to Node.js server
+    # API routes - proxy to Node.js server (which runs on same port)
     handle /api/* {
+        try_files {path} /index.html
         reverse_proxy localhost:3000
     }
 
-    # Static files from Astro dist (before /api routes)
+    # Static files from Astro dist (fallback)
     handle {
         root * ./dist
         try_files {path} /index.html

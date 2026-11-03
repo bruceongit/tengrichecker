@@ -16,10 +16,10 @@
         }
     }
 
-    # API routes - proxy to Node.js server (which runs on same port)
+    # API routes - proxy to Node.js server on port 3001
     handle /api/* {
         try_files {path} /index.html
-        reverse_proxy localhost:3000
+        reverse_proxy localhost:3001
     }
 
     # Static files from Astro dist (fallback)

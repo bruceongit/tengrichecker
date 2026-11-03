@@ -16,7 +16,7 @@ const __dirname = path.dirname(__filename);
 // Get the combined app (Astro + Honey Pot)
 const app = honeyApp;
 
-// Static file serving for Astro dist (override from original server.js)
+// Static file serving for Astro dist
 const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {
     console.log(`Serving static files from ${distPath}`);
@@ -29,7 +29,7 @@ if (fs.existsSync(distPath)) {
     }));
 }
 
-// Root endpoint (replace honey pot root with combined root)
+// Root endpoint
 app.get('/', (req, res) => {
     res.json({
         message: 'TengriChecker',
@@ -109,6 +109,4 @@ app.get('/api/health', (req, res) => {
 });
 
 // Expose the app for Railway to use
-// Note: server.js re-uses the app from backend/api.js
-// which already has its own listen() called
 export { app };

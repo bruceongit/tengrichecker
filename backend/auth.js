@@ -175,8 +175,8 @@ export function withAuth(handler) {
 // Generate secret key if not provided
 export function generateSecretKey() {
     const array = new Uint8Array(32);
-    window.crypto.getRandomValues(array);
-    const secret = btoa(String.fromCharCode(...array));
+    crypto.getRandomValues(array);
+    const secret = isBrowser ? btoa(String.fromCharCode(...array)) : Buffer.from(array).toString('base64');
     return secret;
 }
 

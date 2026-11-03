@@ -11,6 +11,7 @@ const checks = defineCollection({
     order: z.number(),
     featured: z.boolean().default(false),
     followUp: z.boolean().default(false), // quote comes from his follow-up posts, not the main tweet
+    quoteUrl: z.string().optional(), // exact post, when the quote is not in the case's main post
     summary: z.string(),
     case: z.string().default("schiffy-fleet"),
     reviewed: z.string().default("2026-11-02"),

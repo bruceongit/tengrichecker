@@ -8,7 +8,7 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { app as honeyApp } from './backend/api.js';
+import { app as honeyApp, server as honeyServer } from './backend/api.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -108,5 +108,15 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Expose the app for Railway to use
-export { app };
+// Expose the app and server for Railway to use
+export { app, server };
+
+// Keep the process alive (needed when running as main module)
+if (import.meta.url === `file://${process.argv[1]}`) {
+    console.log(`[Server] Process will stay alive due to active server on port ${process.env.PORT || 3001}`);
+}
+
+// Keep the process alive (needed when running as main module)
+if (import.meta.url === `file://${process.argv[1]}`) {
+    console.log(`[Server] Process will stay alive due to active server on port ${process.env.PORT || 3001}`);
+}

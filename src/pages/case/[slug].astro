@@ -17,6 +17,7 @@ const c = cases[slug!];
     <p class="eyebrow">Case file · Reviewed {fmtDate(c.reviewed)}</p>
     <h1 id="response-title">{c.title}</h1>
     <p class="standfirst">{c.summary}</p>
+    {c.disclosure && <p class="section-note"><strong>Disclosure:</strong> {c.disclosure}</p>}
     <ClaimDetails caseSlug={slug!} />
   </article>}
 </Base>

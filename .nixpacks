@@ -9,7 +9,7 @@ HONEY_POT_DATA = "/data"
 NODE_ENV = "production"
 
 [start]
-command = "node backend/api.js"
+command = "node server.js"
 
 [deploy]
 startCommand = "node backend/api.js"

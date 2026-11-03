@@ -43,7 +43,7 @@ const secondary = rendered.filter(({entry}) => brief[entry.id]?.secondary);
       </tr>)}</tbody>
     </table>
   </section>}
-  <p class="section-note">“False — team response” is our denial. Expand any claim for its full evidence and sources. <a href="/ratings">Label meanings ↗</a></p>
+  <p class="section-note">{items.some(x => x.data.rating === "team-denial") && "“False — team response” is our denial. "}Expand any claim for its full evidence and sources. <a href="/ratings">Label meanings ↗</a></p>
 </section>
 <script>
   function revealClaim() {

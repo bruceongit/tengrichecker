@@ -616,7 +616,7 @@ async function initializeServices() {
 
 // Start server
 console.log(`[Startup] Starting server on port ${PORT}...`);
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
     console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║        TENGRI CHECKER SERVER ACTIVE                        ║
@@ -754,5 +754,5 @@ process.on('SIGTERM', () => {
     });
 });
 
-// Expose the app for Railway to use
-export { app };
+// Expose the app and server for Railway to use
+export { app, server };

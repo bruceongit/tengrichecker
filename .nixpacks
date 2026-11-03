@@ -10,10 +10,9 @@ NODE_ENV = "production"
 PORT = "3001"
 
 [start]
-command = "node server.js &"
+command = "node server.js"
 
 [deploy]
-startCommand = "node server.js"
 healthCheckPath = "/api/health"
 healthCheckInterval = 30
 restartPolicyType = "ON_FAILURE"

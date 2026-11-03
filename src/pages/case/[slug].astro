@@ -1,0 +1,23 @@
+---
+import Base from "../../layouts/Base.astro";
+import ClaimDetails from "../../components/ClaimDetails.astro";
+import SchiffyResponse from "../../components/SchiffyResponse.astro";
+import ClaimTweet from "../../components/ClaimTweet.astro";
+import CaseNav from "../../components/CaseNav.astro";
+import { cases, fmtDate } from "../../lib/site";
+export function getStaticPaths() { return Object.keys(cases).map((slug) => ({ params: { slug } })); }
+const { slug } = Astro.params;
+const c = cases[slug!];
+---
+<Base title={c.title} description={c.summary}>
+  <p class="breadcrumb"><a href="/">All cases</a><span aria-hidden="true"> / </span><span>{c.title}</span></p>
+  {slug === "schiffy-fleet" && <CaseNav />}
+  {c.threadUrl && <ClaimTweet url={c.threadUrl} />}
+  {slug === "schiffy-fleet" ? <SchiffyResponse /> : <article class="check">
+    <p class="eyebrow">Case file · Reviewed {fmtDate(c.reviewed)}</p>
+    <h1 id="response-title">{c.title}</h1>
+    <p class="standfirst">{c.summary}</p>
+    <ClaimDetails caseSlug={slug!} />
+  </article>}
+</Base>
+

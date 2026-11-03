@@ -1,0 +1,17 @@
+---
+const { url } = Astro.props as { url: string };
+---
+<section class="claim-tweet" aria-labelledby="original-post-title">
+  <div class="claim-tweet-intro">
+    <p class="eyebrow">The original post</p>
+    <h2 id="original-post-title">His claim.<br />In his words.</h2>
+    <a class="button primary" href="#response-title">Read our response ↓</a>
+    <p class="tweet-direct"><a href={url} target="_blank" rel="noopener noreferrer">Open the original post on X ↗</a></p>
+  </div>
+  <div class="tweet-embed">
+    <blockquote class="twitter-tweet" data-theme="dark" data-dnt="true" data-conversation="none" data-width="550" data-align="center">
+      <a href={url}>Read Tengri’s original post on X.</a>
+    </blockquote>
+  </div>
+</section>
+<script is:inline async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>

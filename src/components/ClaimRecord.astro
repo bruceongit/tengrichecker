@@ -1,0 +1,13 @@
+---
+import HoldingsChart from "./HoldingsChart.astro";
+import { cases } from "../lib/site";
+const { entry, Content } = Astro.props;
+const cs = cases[entry.data.case];
+---
+<div class="claim-record">
+  <div class="claim-original"><p class="eyebrow">His words</p><blockquote>{entry.data.quote}</blockquote><p class="meta">{entry.data.followUp ? "Supplied follow-up text · original source link pending" : <a href={cs.threadUrl!}>Original post on X ↗</a>}{entry.id === "is-schiffy-team-behind-fleet" && " · Team ownership is our reading of the post’s implication."}</p></div>
+  {entry.id === "did-position-reach-98m" && <HoldingsChart detailHref={`#claim-${entry.id}`} />}
+  <div class="prose"><Content /></div>
+  <section class="sources"><h3>Sources</h3><ul>{entry.data.sources.map((s: {url:string;label:string}) => <li><a href={s.url}>{s.label}</a></li>)}</ul></section>
+  <a class="claim-permalink" href={`#claim-${entry.id}`}>Link to this claim</a>
+</div>

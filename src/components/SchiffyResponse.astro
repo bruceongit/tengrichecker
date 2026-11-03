@@ -1,0 +1,25 @@
+---
+import ClaimDetails from "./ClaimDetails.astro";
+import LaunchTimeline from "./LaunchTimeline.astro";
+import { site } from "../lib/site";
+---
+<section class="case-defense" aria-labelledby="response-title">
+  <p class="eyebrow">The SCHIFFY team’s response</p>
+  <h1 id="response-title">False.<br />These wallets are not ours.</h1>
+  <p class="defense-statement">We have no connection to this fleet. We do not own, fund or control these wallets.</p>
+  <p class="defense-lead">Tengri has shown no direct or indirect link establishing our ownership, funding or control. Trading activity is not proof of team involvement.</p>
+  <p class="section-note">Team response · Records checked through November 2, 2026.</p>
+</section>
+<section id="evidence" class="defense-evidence" aria-labelledby="evidence-title">
+  <h2 id="evidence-title">The evidence that matters.</h2>
+  <div class="defense-grid">
+    <article><strong>431</strong><h3>Other launches before SCHIFFY.</h3><p>1,400 other launches, 1,150 creators. This operation predates SCHIFFY.</p><a href="#claim-is-schiffy-team-behind-fleet">See the wider pattern ↓</a></article>
+    <article><strong>192</strong><h3>Other wallets got there first.</h3><p>The fleet entered 4m 23s after mint through public contracts. No whitelist or special allocation.</p><a href="#claim-is-schiffy-team-behind-fleet">Check the open launch ↓</a></article>
+    <article><strong>0</strong><h3>Direct links in the tests.</h3><p>Zero direct transfers between the team-side addresses tested and the fleet or its funding wallets.</p><a href="#claim-is-schiffy-team-behind-fleet">See the tests and results ↓</a></article>
+  </div>
+  <a class="text-link" href="/evidence/launches">Inspect the 1,400-launch dataset ↗</a>
+</section>
+<LaunchTimeline />
+<ClaimDetails caseSlug="schiffy-fleet" />
+<section class="corrections-callout"><div><p class="eyebrow">Show the link</p><h2>Have evidence of a link?</h2><p>Send the transaction. We’ll address it.</p></div><a class="button primary" href={`mailto:${site.contactEmail}`}>Send evidence ↗</a></section>
+

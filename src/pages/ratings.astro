@@ -1,0 +1,14 @@
+---
+import Base from "../layouts/Base.astro";
+import Badge from "../components/Badge.astro";
+import { ratings, ratingOrder } from "../lib/ratings";
+---
+<Base title="What the ratings mean" description="How TengriChecker rates claims.">
+  <article class="check">
+    <h1>What the ratings mean</h1>
+    <p class="standfirst">If the records contradict him, we say he is wrong. If he has not shown the link he claims, we say so. If we have not checked a number, we say that too. Missing proof does not make every underlying claim false.</p>
+    <dl class="defs">
+      {ratingOrder.map((k) => <div><dt><Badge rating={k} /></dt><dd>{ratings[k].meaning}</dd></div>)}
+    </dl>
+  </article>
+</Base>

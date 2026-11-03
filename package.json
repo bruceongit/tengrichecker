@@ -1,0 +1,25 @@
+{
+  "name": "tengrichecker",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "serve": "node server.js",
+    "honey:dev": "node backend/api.js",
+    "honey:start": "node backend/api.js",
+    "honey:clear": "rm -rf honey-data"
+  },
+  "dependencies": {
+    "astro": "^5",
+    "cors": "^2.8.6",
+    "express": "^5.3.0"
+  },
+  "description": "Static claim catalogue (Astro), published by the SCHIFFY team. `npm install`, then `npm run dev` or `npm run build`. Use `npm run preview` to inspect the built site.",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

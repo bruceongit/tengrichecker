@@ -1,0 +1,6 @@
+---
+import { ratings, type RatingKey } from "../lib/ratings";
+const { rating, size = "sm" } = Astro.props as { rating: RatingKey; size?: "sm" | "lg" };
+const r = ratings[rating];
+---
+<span class="rating-labels"><span class={`badge badge-${size} r-${rating}`}><span class="mark" aria-hidden="true">{r.mark}</span>{r.label}</span>{rating === "mostly-true" && <span class="badge badge-sm wrong-detail">Wrong details</span>}</span>

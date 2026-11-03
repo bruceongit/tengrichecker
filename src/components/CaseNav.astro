@@ -1,0 +1,14 @@
+---
+const { dataset = false } = Astro.props as { dataset?: boolean };
+const casePath = dataset ? "/case/schiffy-fleet" : "";
+---
+<nav class="case-nav" aria-label="SCHIFFY case">
+  <span>In this case</span>
+  <div>
+    <a href={`${casePath}#original-post-title`}>Original post</a>
+    <a href={`${casePath}#response-title`}>Our response</a>
+    <a href={`${casePath}#evidence`}>Evidence</a>
+    <a href={`${casePath}#claims`}>Claims</a>
+    <a href="/evidence/launches" aria-current={dataset ? "page" : undefined}>Launch data ↗</a>
+  </div>
+</nav>

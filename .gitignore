@@ -1,0 +1,10 @@
+node_modules
+dist
+.astro
+.vercel
+.env*
+evidence
+.deploy
+honey-data
+server.js
+railway.json

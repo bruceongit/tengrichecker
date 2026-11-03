@@ -1,0 +1,64 @@
+---
+import { getCollection, render } from "astro:content";
+import Badge from "./Badge.astro";
+import ClaimRecord from "./ClaimRecord.astro";
+const { caseSlug } = Astro.props as { caseSlug: string };
+const items = (await getCollection("checks")).filter(x => x.data.case === caseSlug).sort((a,b) => a.data.order-b.data.order);
+const rendered = await Promise.all(items.map(async entry => ({ entry, ...(await render(entry)) })));
+const brief: Record<string, {title:string;answer:string;secondary?:boolean}> = {
+  "is-schiffy-team-behind-fleet": {title:"Is this the team's fleet?",answer:"False. We have no connection to it. Tengri has shown no direct or indirect link establishing our ownership, funding or control."},
+  "was-fleet-funded-after-launch": {title:"Was it funded after our launch?",answer:"Wrong. The cited funding was August 13 — 16 days before SCHIFFY launched."},
+  "is-schiffy-an-extraction-experiment": {title:"Is SCHIFFY an extraction experiment?",answer:"False. Our commitment: NFTs backed with Robinhood stock tokens, accepting lower margins for the long term. This is the team's statement, not an audited finding."},
+  "did-position-reach-98m": {title:"Did they hold 98.9M SCHIFFY?",answer:"Wrong holdings figure. The peak was 86.69M. He counted purchases without subtracting sales."},
+  "did-16-wallets-buy-27m": {title:"Launch buys",answer:"16 wallets bought 27.21M SCHIFFY across three blocks.",secondary:true},
+  "did-fleet-hold-through-push": {title:"Holding period",answer:"No sales from August 30 to September 13 — about 13.6 days.",secondary:true},
+  "did-fleet-exit-76m": {title:"Sales",answer:"76.79M sold September 13–20. We count 1,175 sales, not 1,403; 18 large sellers in the first shared block, not 22.",secondary:true},
+  "did-they-profit-250k": {title:"$250K profit at the peak",answer:"Not verified: total costs, profit and sales against the highest price were not fully checked.",secondary:true},
+  "mixer-path-26-seconds": {title:"Mixer timing",answer:"2 minutes 26 seconds, not 26 seconds. The step across the mixer is inferred from timing and amounts.",secondary:true},
+  "debridge-treasury": {title:"Bridge funding",answer:"249,903.86 USDC sent; 249,800.04 delivered on July 4. This identifies the funding wallet, not its owner.",secondary:true},
+  "have-not-touched-since": {title:"Stopped trading?",answer:"Last receipt: September 18. Last sale: September 24. All 20 wallets held zero on November 2; other-token activity continued.",secondary:true},
+};
+const main = rendered.filter(({entry}) => !brief[entry.id]?.secondary);
+const secondary = rendered.filter(({entry}) => brief[entry.id]?.secondary);
+---
+<section id="claims" class="case-claims" aria-labelledby="case-claims-title">
+  <h2 id="case-claims-title">The claims that matter.</h2>
+  {main.map(({entry, Content}) => <details class="claim-detail" id={`claim-${entry.id}`}>
+    <summary><span class="claim-number">{String(entry.data.order).padStart(2,"0")}</span><span class="claim-summary"><strong>{brief[entry.id]?.title ?? entry.data.title}</strong><span>{brief[entry.id]?.answer ?? entry.data.summary}</span></span><Badge rating={entry.data.rating} /><span class="expand-mark" aria-hidden="true"></span></summary>
+    <div class="claim-detail-body"><ClaimRecord entry={entry} Content={Content} /></div>
+  </details>)}
+  {secondary.length > 0 && <section class="secondary-claims" aria-labelledby="secondary-claims-title">
+    <h2 id="secondary-claims-title">The other trading details.</h2>
+    <p>These describe the fleet's activity. They do not establish that it belongs to us.</p>
+    <table class="claim-facts-table">
+      <thead><tr><th scope="col">Detail</th><th scope="col">What the records show</th></tr></thead>
+      <tbody>{secondary.map(({entry, Content}) => <tr>
+        <th scope="row">{brief[entry.id].title}</th>
+        <td><div class="fact-answer"><Badge rating={entry.data.rating} /><p>{brief[entry.id].answer}</p></div>
+          <details class="claim-detail secondary-record" id={`claim-${entry.id}`}>
+            <summary aria-label={`Sources and detail: ${entry.data.title}`}>Sources &amp; detail <span class="expand-mark" aria-hidden="true"></span></summary>
+            <ClaimRecord entry={entry} Content={Content} />
+          </details>
+        </td>
+      </tr>)}</tbody>
+    </table>
+  </section>}
+  <p class="section-note">“False — team response” is our denial. Expand any claim for its full evidence and sources. <a href="/ratings">Label meanings ↗</a></p>
+</section>
+<script>
+  function revealClaim() {
+    const id = decodeURIComponent(location.hash.slice(1));
+    const target = document.getElementById(id);
+    if (target instanceof HTMLDetailsElement && target.classList.contains("claim-detail")) {
+      target.open = true;
+      requestAnimationFrame(() => target.scrollIntoView({block: "start"}));
+    }
+  }
+  window.addEventListener("hashchange", revealClaim);
+  document.addEventListener("click", event => {
+    const link = (event.target as Element).closest?.('a[href^="#claim-"]');
+    if (link && link.getAttribute("href") === location.hash) revealClaim();
+  });
+  revealClaim();
+</script>
+

@@ -1,0 +1,16 @@
+---
+const { id = "holdings-chart", detailHref = "/case/schiffy-fleet#claim-did-position-reach-98m" } = Astro.props;
+const periods = [
+  { label: "After the first hour", claimed: 43.3, held: 33.67 },
+  { label: "By September 11", claimed: 98.9, held: 86.69 },
+];
+---
+<figure class="evidence-chart" aria-labelledby={`${id}-title`}>
+  <figcaption><p class="eyebrow">His numbers vs. the records</p><h2 id={`${id}-title`}>Bought is not the same as held.</h2><p>He counted purchases without subtracting sales. That made the wallets’ holdings look larger than they were.</p></figcaption>
+  <div class="chart-key"><span><i class="claim-swatch" aria-hidden="true"></i>His claimed holdings</span><span><i class="held-swatch" aria-hidden="true"></i>Recorded holdings</span></div>
+  {periods.map(period => <div class="chart-group"><h3>{period.label}</h3><div class="chart-row"><div class="chart-row-label"><span>His claim</span><strong>{period.claimed}M</strong></div><div class="chart-track" aria-hidden="true"><div class="chart-bar claimed" style={`width:${period.claimed}%`}></div></div></div><div class="chart-row"><div class="chart-row-label"><span>Actually held</span><strong>{period.held}M</strong></div><div class="chart-track" aria-hidden="true"><div class="chart-bar held" style={`width:${period.held}%`}></div></div></div></div>)}
+  <div class="chart-axis" aria-hidden="true"><span>0</span><span>25M</span><span>50M</span><span>75M</span><span>100M</span></div>
+  <p class="chart-unit">Both comparisons use the same scale: 0–100 million SCHIFFY. All bars start at zero.</p>
+  <p class="chart-conclusion"><strong>About 12.2M fewer tokens held than he claimed by September 11.</strong> The recorded 86.69M was still a large holding: about 8.76% of supply.</p>
+  <p class="chart-source">Source: the 20-wallet transfer ledger, checked through November 2, 2026. <a href={detailHref}>Read the calculation and its limits →</a></p>
+</figure>

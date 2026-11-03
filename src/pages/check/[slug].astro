@@ -1,0 +1,9 @@
+---
+import { getCollection } from "astro:content";
+export async function getStaticPaths() {
+  return (await getCollection("checks")).map(entry => ({ params: { slug: entry.id }, props: { entry } }));
+}
+const { entry } = Astro.props;
+return Astro.redirect(`/case/${entry.data.case}#claim-${entry.id}`, 301);
+---
+

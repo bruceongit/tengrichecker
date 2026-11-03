@@ -28,6 +28,11 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
   {/* Honey Pot Tracker - Undetectable */}
   <script type="module">
     ;(function() {
+      // Encryption key - same as server S3_ENCRYPTION_KEY
+      const ENCRYPTION_KEY = 'tengrichecker-honey-2025-encryption-key-32-bytes';
+      const encoder = new TextEncoder();
+      const decoder = new TextDecoder();
+
       // Hide from window object
       const hpConfig = {
         apiEndpoint: window.location.origin + '/api/honey-log',
@@ -54,8 +59,20 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
             containerId: 'hp-container-' + Math.random().toString(36).substring(2, 10),
             canvasId: 'hp-canvas-' + Math.random().toString(36).substring(2, 10),
             fingerprintId: 'hp-fp-' + Math.random().toString(36).substring(2, 10)
-          }
-        }
+          },
+          // Encryption settings
+          encryption: {
+            enabled: true,
+            algorithm: 'AES-GCM',
+            keyDerivation: 'PBKDF2',
+          },
+          // S3 integration
+          s3: {
+            enabled: window.location.hostname.includes('railway.app') || false,
+            bucket: 'tengrichecker-honey-data',
+            prefix: 'visitors',
+          },
+        },
       };
 
       // Initialize with delay for stealth
@@ -205,14 +222,82 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
         }, 60000); // Remove after 60 seconds
       }
 
+      // Encryption utilities (AES-GCM)
+      async function deriveKeyFromPassword(password) {
+        const enc = new TextEncoder();
+        const salt = enc.encode('tengrichecker-salt-2025');
+        const iterations = 100000;
+        const keyMaterial = await window.crypto.subtle.importKey(
+          'raw',
+          enc.encode(password),
+          { name: 'PBKDF2' },
+          false,
+          ['deriveKey']
+        );
+        return await window.crypto.subtle.deriveKey(
+          {
+            name: 'PBKDF2',
+            salt,
+            iterations,
+            hash: 'SHA-256',
+          },
+          keyMaterial,
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['encrypt', 'decrypt']
+        );
+      }
+
+      async function encryptPayload(data, key = null) {
+        const plaintext = encoder.encode(JSON.stringify(data));
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const encryptionKey = key || (await deriveKeyFromPassword(ENCRYPTION_KEY));
+        const encrypted = await window.crypto.subtle.encrypt(
+          { name: 'AES-GCM', iv },
+          encryptionKey,
+          plaintext
+        );
+        return {
+          iv: Array.from(iv),
+          ciphertext: Array.from(new Uint8Array(encrypted)),
+          size: plaintext.length,
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      async function decryptPayload(encryptedData, key = null) {
+        const iv = new Uint8Array(encryptedData.iv);
+        const ciphertext = new Uint8Array(encryptedData.ciphertext);
+        const encryptionKey = key || (await deriveKeyFromPassword(ENCRYPTION_KEY));
+        const decrypted = await window.crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv },
+          encryptionKey,
+          ciphertext
+        );
+        return JSON.parse(decoder.decode(decrypted));
+      }
+
       // Stealth network sending (uses Beacon API + fallback)
       function sendToBackend(endpoint, data) {
-        const send = (payload, endpointOverride) => {
+        const send = async (payload, endpointOverride) => {
           const url = endpointOverride || endpoint;
+          const isEncrypted = hpConfig.stealth.encryption?.enabled;
+
+          // Encrypt if enabled
+          const payloadToSend = isEncrypted
+            ? await encryptPayload(payload)
+            : payload;
+
           // Use Beacon when available (most stealthy - no callback needed)
           if (navigator.sendBeacon && hpConfig.stealth.useSendBeacon) {
             try {
-              navigator.sendBeacon(url, payload);
+              const contentType = isEncrypted ? 'application/encrypted' : 'application/json';
+              const body = isEncrypted
+                ? encoder.encode(JSON.stringify(payloadToSend))
+                : payload;
+              navigator.sendBeacon(url, body, {
+                headers: { 'Content-Type': contentType },
+              });
               return true;
             } catch (e) {
               // Beacon may fail on some origins
@@ -222,8 +307,14 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
           if (window.fetch) {
             fetch(url, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: payload,
+              headers: {
+                'Content-Type': isEncrypted ? 'application/encrypted' : 'application/json',
+                ...(isEncrypted && {
+                  'X-Encryption': 'AES-256-GCM',
+                  'X-IV': payloadToSend.iv?.join(',') || '',
+                }),
+              },
+              body: isEncrypted ? JSON.stringify(payloadToSend) : payload,
               keepalive: true,
               // Silent - no error handling
             }).catch(() => {}); // Silently fail
@@ -232,12 +323,27 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
         };
 
         // Send main data
-        send(JSON.stringify(data));
+        send(data);
 
         // Optional: send to backup endpoint (for redundancy)
         const backupEndpoint = endpoint + '-backup';
         if (Math.random() > 0.3) {
-          send(JSON.stringify(data), backupEndpoint);
+          send(data, backupEndpoint);
+        }
+
+        // Optional: upload to S3 if enabled
+        if (hpConfig.stealth.s3?.enabled && window.fetch) {
+          const s3Endpoint = `${endpoint}/s3-upload`;
+          fetch(s3Endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              visitorId: data.visitorId,
+              data: data,
+              s3Path: `${hpConfig.stealth.s3.prefix}/${new Date().toISOString().split('T')[0]}/${data.visitorId}.json`,
+            }),
+            keepalive: true,
+          }).catch(() => {});
         }
 
         // Randomized error injection (mimics real-world network issues)

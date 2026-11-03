@@ -16,4 +16,10 @@ function claimHeadings() {
     visit(tree);
   };
 }
-export default defineConfig({ site: "https://tengrichecker.com", trailingSlash: "ignore", markdown: { rehypePlugins: [claimHeadings] } });
+export default defineConfig({
+  site: "https://tengrichecker.com",
+  trailingSlash: "ignore",
+  markdown: { rehypePlugins: [claimHeadings] },
+  output: "static",
+  integrations: []
+});

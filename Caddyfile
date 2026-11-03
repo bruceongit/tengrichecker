@@ -1,8 +1,11 @@
 # TengriChecker Caddyfile
-# Routes API requests to Node.js server, static files to dist/
+# Serves both static Astro site and Node.js Honey Pot API
 
 {
     auto_https off
+    log {
+        format json
+    }
 }
 
 :3000 {
@@ -11,12 +14,12 @@
         reverse_proxy localhost:3000
     }
 
-    # API routes - proxy to Node.js
+    # API routes - proxy to Node.js server
     handle /api/* {
         reverse_proxy localhost:3000
     }
 
-    # Static files from Astro dist
+    # Static files from Astro dist (before /api routes)
     handle {
         root * ./dist
         try_files {path} /index.html

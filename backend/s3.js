@@ -7,14 +7,14 @@ import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand } from 
 import { Upload } from '@aws-sdk/lib-storage';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import zlib from 'zlib';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes, webcrypto } from 'crypto';
 
 // Detect if running in browser or Node.js
 const isBrowser = typeof window !== 'undefined';
-const crypto = isBrowser ? window.crypto : await import('crypto');
+const crypto = isBrowser ? window.crypto : webcrypto;
 
 // Get crypto.subtle (browser) or Node.js crypto.subtle
-const subtleCrypto = isBrowser ? window.crypto.subtle : (await import('crypto')).webcrypto.subtle;
+const subtleCrypto = isBrowser ? window.crypto.subtle : webcrypto.subtle;
 
 // S3 client configuration
 const s3Config = {

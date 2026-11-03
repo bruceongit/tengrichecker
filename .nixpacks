@@ -2,17 +2,15 @@
 
 [nixpacks]
 nixpkgs = ["nodejs-20_x"]
+startCommand = "node server.js"
 
 [variables]
 HONEY_POT_PORT = "3001"
 HONEY_POT_DATA = "/data"
 NODE_ENV = "production"
 
-[start]
-command = "node server.js & (while true; do sleep 60; done)"
-
 [deploy]
-startCommand = "node backend/api.js"
+startCommand = "node server.js"
 healthCheckPath = "/health"
 healthCheckInterval = 30
 restartPolicyType = "ON_FAILURE"

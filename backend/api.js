@@ -18,6 +18,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || process.env.HONEY_POT_PORT || 3001;
+console.log(`[API] Server configured with PORT=${PORT}`);
 const DATA_DIR = process.env.HONEY_POT_DATA || path.join(__dirname, 'honey-data');
 const USE_POSTGRES = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 const USE_S3 = process.env.S3_BUCKET_NAME || process.env.AWS_BUCKET;

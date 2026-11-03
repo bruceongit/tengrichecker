@@ -16,6 +16,9 @@ const __dirname = path.dirname(__filename);
 // Get the combined app (Astro + Honey Pot)
 const app = honeyApp;
 
+console.log(`[Server] Starting server...`);
+console.log(`[Server] PORT=${process.env.PORT}, HONEY_POT_PORT=${process.env.HONEY_POT_PORT}`);
+
 // Static file serving for Astro dist
 const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {

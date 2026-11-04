@@ -5,7 +5,7 @@
     "buildCommand": "npm install && npm run build"
   },
   "deploy": {
-    "startCommand": "sh -c 'exec node server.js || exec /usr/local/bin/node server.js || exec /usr/bin/node server.js'",
+    "startCommand": "exec /usr/bin/node server.js",
     "healthCheckPath": "/api/health",
     "healthCheckInterval": 30,
     "env": {
@@ -43,7 +43,7 @@
   },
   "infrastructure": {
     "commands": {
-      "postdeploy": "sh -c 'exec node server.js || exec /usr/local/bin/node server.js || exec /usr/bin/node server.js'"
+      "postdeploy": "exec /usr/bin/node server.js"
     }
   }
 }

@@ -4,17 +4,20 @@ PORT = "3001"
 NETWORK_PORT = "3001"
 NETWORK_DATA = "/data"
 
-[build]
-builder = "nixpacks/nixpacks"
+[phases.setup]
+nixPkgs = ["nodejs-20_x"]
 
-[nixpkgs]
-nixpkgs = ["nodejs-20_x"]
+[phases.build]
+buildCommand = "npm install && npm run build"
 
-[start]
-# Run server with fallback for different node binary locations
-cmd = "sh -c 'exec node server.js || exec /usr/local/bin/node server.js || exec /usr/bin/node server.js'"
+[phases.deploy]
+# Run server with node binary at /usr/bin/node (nixpkgs nodejs-20_x default)
+startCommand = "exec /usr/bin/node server.js"
+
+[phases.install]
+packages = ["nodejs-20_x"]
 
 [deploy]
-health_check_path = "/api/health"
-restart_policy_type = "ON_FAILURE"
-restart_policy_max_retries = 10
+healthCheckPath = "/api/health"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

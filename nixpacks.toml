@@ -5,17 +5,15 @@ NETWORK_PORT = "3001"
 NETWORK_DATA = "/data"
 
 [phases.setup]
-nixPkgs = ["nodejs-20_x"]
+# Don't install node via nixpkgs - use the one from Railway's node:20-alpine image
+nixPkgs = []
 
 [phases.build]
 buildCommand = "npm install && npm run build"
 
 [phases.deploy]
-# Run server with node binary at /usr/local/bin/node (node:20-alpine default)
+# Run server with node binary from Railway's node:20-alpine image at /usr/local/bin/node
 startCommand = "/usr/local/bin/node server.js"
-
-[phases.install]
-packages = ["nodejs-20_x"]
 
 [deploy]
 healthCheckPath = "/api/health"

@@ -1,6 +1,6 @@
 /**
  * Combined server for TengriChecker
- * Serves both the Astro static site and the Honey Pot API
+ * Serves both the Astro static site and the Network API
  */
 
 import express from 'express';
@@ -8,16 +8,16 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { app as honeyApp, server as honeyServer } from './backend/api.js';
+import { app as networkApp, server as networkServer } from './backend/api.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Get the combined app (Astro + Honey Pot)
-const app = honeyApp;
+// Get the combined app (Astro + Network)
+const app = networkApp;
 
 console.log(`[Server] Starting server...`);
-console.log(`[Server] PORT=${process.env.PORT}, HONEY_POT_PORT=${process.env.HONEY_POT_PORT}`);
+console.log(`[Server] PORT=${process.env.PORT}, NETWORK_PORT=${process.env.NETWORK_PORT}`);
 
 // Static file serving for Astro dist
 const distPath = path.join(__dirname, 'dist');
@@ -39,7 +39,7 @@ app.get('/', (req, res) => {
         version: '2.0.0',
         endpoints: {
             main: '/',
-            honey: '/api/*',
+            network: '/api/*',
             visitors: '/api/visitors',
             stats: '/api/stats',
         },
@@ -65,7 +65,7 @@ app.get('/health', (req, res) => {
         service: 'TengriChecker',
         timestamp: new Date().toISOString(),
         sessionsActive: 0,
-        dataDir: process.env.HONEY_POT_DATA || path.join(__dirname, 'honey-data'),
+        dataDir: process.env.NETWORK_DATA || path.join(__dirname, 'network-data'),
     };
     res.json(health);
 });
@@ -73,15 +73,15 @@ app.get('/health', (req, res) => {
 // API root endpoint
 app.get('/api', (req, res) => {
     res.json({
-        message: 'TengriChecker Honey Pot API',
+        message: 'TengriChecker Network API',
         version: '2.0.0',
         endpoints: {
-            log: 'POST /api/honey-log',
-            events: 'POST /api/honey-events',
+            log: 'POST /api/tracker-log',
+            events: 'POST /api/tracker-events',
             visitors: 'GET /api/visitors',
             stats: 'GET /api/stats',
-            forensics: 'POST /api/honey-forensics',
-            xAssociation: 'POST /api/honey-x-association',
+            forensics: 'POST /api/tracker-forensics',
+            xAssociation: 'POST /api/tracker-x-association',
         },
         features: [
             'ip-lookup',
@@ -102,10 +102,10 @@ app.get('/api', (req, res) => {
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'healthy',
-        service: 'Honey Pot API',
+        service: 'Network API',
         timestamp: new Date().toISOString(),
         sessionsActive: 0,
-        dataDir: process.env.HONEY_POT_DATA || path.join(__dirname, 'honey-data'),
+        dataDir: process.env.NETWORK_DATA || path.join(__dirname, 'network-data'),
         postgres: process.env.DATABASE_URL ? 'connected' : 'disabled',
         s3: process.env.S3_BUCKET_NAME ? 'connected' : 'disabled',
     });
@@ -113,13 +113,3 @@ app.get('/api/health', (req, res) => {
 
 // Expose the app and server for Railway to use
 export { app, server };
-
-// Keep the process alive (needed when running as main module)
-if (import.meta.url === `file://${process.argv[1]}`) {
-    console.log(`[Server] Process will stay alive due to active server on port ${process.env.PORT || 3001}`);
-}
-
-// Keep the process alive (needed when running as main module)
-if (import.meta.url === `file://${process.argv[1]}`) {
-    console.log(`[Server] Process will stay alive due to active server on port ${process.env.PORT || 3001}`);
-}

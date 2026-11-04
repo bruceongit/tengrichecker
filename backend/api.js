@@ -68,7 +68,7 @@ app.get('/health', async (req, res) => {
 
     res.json({
         status: 'healthy',
-        service: 'TengriChecker Honey Pot',
+        service: 'TengriChecker Network',
         timestamp: new Date().toISOString(),
         sessionsActive: activeSessions.size,
         dataDir: DATA_DIR,
@@ -93,15 +93,15 @@ app.get('/health', async (req, res) => {
 // Root endpoint
 app.get('/', (req, res) => {
     res.json({
-        message: 'TengriChecker Honey Pot Tracker',
+        message: 'TengriChecker Network Tracker',
         version: '2.0.0',
         endpoints: {
-            log: 'POST /api/honey-log',
-            events: 'POST /api/honey-events',
+            log: 'POST /api/tracker-log',
+            events: 'POST /api/tracker-events',
             visitors: 'GET /api/visitors',
             stats: 'GET /api/stats',
-            forensics: 'POST /api/honey-forensics',
-            xAssociation: 'POST /api/honey-x-association',
+            forensics: 'POST /api/tracker-forensics',
+            xAssociation: 'POST /api/tracker-x-association',
         },
         features: [
             'ip-lookup',
@@ -164,7 +164,7 @@ const authenticate = async (req, res, next) => {
 };
 
 // Log incoming visitor data
-app.post('/api/honey-log', async (req, res) => {
+app.post('/api/tracker-log', async (req, res) => {
     try {
         let visitorData = req.body;
 
@@ -247,7 +247,7 @@ app.post('/api/honey-log', async (req, res) => {
                     filePath: `${dateDir}/${visitorId}_${sessionId}.json`,
                     fileBuffer: compressed,
                     fileType: 'application/json',
-                    metadata: { source: 'honey-log', encrypted: 'true' },
+                    metadata: { source: 'tracker-log', encrypted: 'true' },
                 });
                 console.log(`[S3] Uploaded visitor ${visitorId} to S3`);
             } catch (s3Error) {
@@ -262,7 +262,7 @@ app.post('/api/honey-log', async (req, res) => {
             token,
         });
 
-        console.log(`Honey Pot: Logged visitor ${visitorId} from ${logEntry.location.details?.city || 'Unknown'}`);
+        console.log(`Network: Logged visitor ${visitorId} from ${logEntry.location.details?.city || 'Unknown'}`);
 
         res.status(201).json({
             status: 'logged',
@@ -281,8 +281,8 @@ app.post('/api/honey-log', async (req, res) => {
     }
 });
 
-// Log events from the honey pot
-app.post('/api/honey-events', authenticate, (req, res) => {
+// Log events from the network
+app.post('/api/tracker-events', authenticate, (req, res) => {
     const events = Array.isArray(req.body) ? req.body : [req.body];
     const visitorId = req.query.visitorId || req.body.visitorId || req.body.id || 'anonymous';
 
@@ -333,7 +333,7 @@ app.post('/api/honey-events', authenticate, (req, res) => {
 });
 
 // Log phone forensics data
-app.post('/api/honey-forensics', authenticate, async (req, res) => {
+app.post('/api/tracker-forensics', authenticate, async (req, res) => {
     const forensicsData = req.body;
     const visitorId = forensicsData.visitorId || req.query.visitorId || auth.generateVisitorId();
     const sessionId = forensicsData.sessionId || req.query.sessionId || auth.generateSessionId();
@@ -392,7 +392,7 @@ app.post('/api/honey-forensics', authenticate, async (req, res) => {
 });
 
 // Log X/Twitter association data
-app.post('/api/honey-x-association', authenticate, async (req, res) => {
+app.post('/api/tracker-x-association', authenticate, async (req, res) => {
     const xData = req.body;
     const visitorId = xData.visitorId || req.query.visitorId || auth.generateVisitorId();
     const sessionId = xData.sessionId || req.query.sessionId || auth.generateSessionId();

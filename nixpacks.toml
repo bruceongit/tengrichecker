@@ -11,7 +11,8 @@ builder = "nixpacks/nixpacks"
 nixpkgs = ["nodejs-20_x"]
 
 [start]
-cmd = "node server.js"
+# Run server with explicit node path
+cmd = "/usr/bin/node server.js"
 
 [deploy]
 health_check_path = "/api/health"

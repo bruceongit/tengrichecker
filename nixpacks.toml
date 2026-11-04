@@ -11,8 +11,8 @@ nixPkgs = ["nodejs-20_x"]
 buildCommand = "npm install && npm run build"
 
 [phases.deploy]
-# Run server with node binary at /usr/bin/node (nixpkgs default)
-startCommand = "/usr/bin/node server.js"
+# Run server with node binary at /usr/local/bin/node (node:20-alpine default)
+startCommand = "/usr/local/bin/node server.js"
 
 [phases.install]
 packages = ["nodejs-20_x"]

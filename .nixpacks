@@ -10,8 +10,8 @@ NODE_ENV = "production"
 PORT = "3001"
 
 [start]
-# Run server with /usr/local/bin/node (default in node:20-alpine)
-command = "/usr/local/bin/node server.js"
+# Run server with /usr/bin/node (default in nixpkgs nodejs-20_x)
+command = "/usr/bin/node server.js"
 
 [deploy]
 healthCheckPath = "/api/health"

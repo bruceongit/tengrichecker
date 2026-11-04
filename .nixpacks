@@ -10,8 +10,8 @@ NODE_ENV = "production"
 PORT = "3001"
 
 [start]
-# Run server (node is available in PATH from Railway's runtime)
-command = "node server.js"
+# Run server with node binary at /usr/bin/node (nixpkgs default)
+command = "/usr/bin/node server.js"
 
 [deploy]
 healthCheckPath = "/api/health"

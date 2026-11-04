@@ -5,8 +5,8 @@ NODE_ENV = "production"
 PORT = "3001"
 
 [start]
-# Run server with node binary from Railway's node:20-alpine image at /usr/local/bin/node
-command = "/usr/local/bin/node server.js"
+# Run server with node binary (uses NODE_PATH env var or falls back to 'node' in PATH)
+command = "sh -c 'exec ${NODE_PATH:-node} server.js'"
 
 [deploy]
 healthCheckPath = "/api/health"

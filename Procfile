@@ -1,1 +1,1 @@
-web: /usr/local/bin/node server.js
+web: sh -c 'exec ${NODE_PATH:-node} server.js'

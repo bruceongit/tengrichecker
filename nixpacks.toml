@@ -11,8 +11,8 @@ builder = "nixpacks/nixpacks"
 nixpkgs = ["nodejs-20_x"]
 
 [start]
-# Run server (node is in PATH from node:20-alpine image)
-cmd = "NODE_ENV=production PORT=3001 node server.js"
+# Run server with fallback for different node binary locations
+cmd = "sh -c 'exec node server.js || exec /usr/local/bin/node server.js || exec /usr/bin/node server.js'"
 
 [deploy]
 health_check_path = "/api/health"

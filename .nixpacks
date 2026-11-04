@@ -10,8 +10,8 @@ NODE_ENV = "production"
 PORT = "3001"
 
 [start]
-# Run server with explicit node path to ensure it's found
-command = "/usr/bin/node server.js"
+# Run server with node20 (common alias in nixpkgs) or node
+command = "node20 server.js || node server.js"
 
 [deploy]
 healthCheckPath = "/api/health"

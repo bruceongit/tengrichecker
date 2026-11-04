@@ -1,1 +1,1 @@
-web: exec /usr/bin/node server.js
+web: node server.js

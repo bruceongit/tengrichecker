@@ -11,8 +11,8 @@ nixPkgs = ["nodejs-20_x"]
 buildCommand = "npm install && npm run build"
 
 [phases.deploy]
-# Run server with node binary at /usr/bin/node (nixpkgs nodejs-20_x default)
-startCommand = "exec /usr/bin/node server.js"
+# Run server (node is available in PATH from Railway's runtime)
+startCommand = "node server.js"
 
 [phases.install]
 packages = ["nodejs-20_x"]

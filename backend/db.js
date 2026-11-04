@@ -1,5 +1,5 @@
 /**
- * PostgreSQL connection pool for Honey Pot Tracker
+ * PostgreSQL connection pool for Network Tracker
  */
 
 import { Pool } from 'pg';

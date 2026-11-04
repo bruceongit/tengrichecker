@@ -1,5 +1,5 @@
 /**
- * JWT authentication middleware for Honey Pot API
+ * JWT authentication middleware for Network Tracker
  */
 
 import { jwtVerify, createRemoteJWKSet } from 'jose';
@@ -14,7 +14,7 @@ const JWK_SET = process.env.JWT_JWK_SET_URL
     ? createRemoteJWKSet(new URL(process.env.JWT_JWK_SET_URL))
     : null;
 
-const SECRET_KEY = process.env.JWT_SECRET_KEY || process.env.JWT_SECRET || 'tengrichecker-honey-secret-key';
+const SECRET_KEY = process.env.JWT_SECRET_KEY || process.env.JWT_SECRET || 'tengrichecker-network-secret-key';
 
 // Generate a JWT token for a visitor
 export function generateVisitorToken(visitorId, sessionId, payload = {}) {

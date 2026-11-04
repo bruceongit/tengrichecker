@@ -1,5 +1,5 @@
 /**
- * S3 bucket integration for Honey Pot Tracker
+ * S3 bucket integration for Network Tracker
  * Uploads files to S3 and tracks metadata in PostgreSQL
  */
 
@@ -29,7 +29,7 @@ const s3Config = {
 
 export const s3Client = new S3Client(s3Config);
 
-const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'tengrichecker-honey-data';
+const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'tengrichecker-network-data';
 const ENCRYPTION_KEY = process.env.S3_ENCRYPTION_KEY;
 
 // Ensure bucket exists

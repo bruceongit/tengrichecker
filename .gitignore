@@ -5,6 +5,6 @@ dist
 .env*
 evidence
 .deploy
-honey-data
+network-data
 server.js
 railway.json

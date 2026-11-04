@@ -8,9 +8,9 @@
     "build": "astro build",
     "preview": "astro preview",
     "serve": "node server.js",
-    "honey:dev": "node backend/api.js",
-    "honey:start": "node backend/api.js",
-    "honey:clear": "rm -rf honey-data"
+    "tracker:dev": "node backend/api.js",
+    "tracker:start": "node backend/api.js",
+    "tracker:clear": "rm -rf network-data"
   },
   "dependencies": {
     "astro": "^5",

@@ -1,6 +1,6 @@
 /**
- * Honey Pot Backend API for TengriChecker
- * Collects visitor data from the honey pot tracker
+ * Network Tracker Backend API for TengriChecker
+ * Collects visitor data from the network tracker
  */
 
 import express from 'express';
@@ -17,9 +17,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || process.env.HONEY_POT_PORT || 3001;
+const PORT = process.env.PORT || process.env.NETWORK_PORT || 3001;
 console.log(`[API] Server configured with PORT=${PORT}`);
-const DATA_DIR = process.env.HONEY_POT_DATA || path.join(__dirname, 'honey-data');
+const DATA_DIR = process.env.NETWORK_DATA || path.join(__dirname, 'network-data');
 const USE_POSTGRES = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 const USE_S3 = process.env.S3_BUCKET_NAME || process.env.AWS_BUCKET;
 

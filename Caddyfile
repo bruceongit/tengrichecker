@@ -1,5 +1,5 @@
 # TengriChecker Caddyfile
-# Serves both static Astro site and Node.js Honey Pot API
+# Serves both static Astro site and Node.js Network Tracker API
 
 {
     auto_https off

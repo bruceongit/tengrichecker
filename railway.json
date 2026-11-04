@@ -9,19 +9,19 @@
     "healthCheckPath": "/api/health",
     "healthCheckInterval": 30,
     "env": {
-      "HONEY_POT_PORT": "3001",
-      "HONEY_POT_DATA": "/data",
+      "NETWORK_PORT": "3001",
+      "NETWORK_DATA": "/data",
       "NODE_ENV": "production",
       "PORT": "3001",
       "DATABASE_URL": "postgresql://postgres:{DATABASE_PASSWORD}@{DATABASE_HOST}:5432/tengrichecker",
       "POSTGRES_URL": "postgresql://postgres:{DATABASE_PASSWORD}@{DATABASE_HOST}:5432/tengrichecker",
-      "S3_BUCKET_NAME": "tengrichecker-honey-data",
-      "S3_ENCRYPTION_KEY": "tengrichecker-honey-2025-encryption-key-32-bytes",
+      "S3_BUCKET_NAME": "tengrichecker-network-data",
+      "S3_ENCRYPTION_KEY": "tengrichecker-network-2025-encryption-key-32-bytes",
       "S3_ENDPOINT": "https://s3.railway.app",
       "AWS_ACCESS_KEY_ID": "{AWS_ACCESS_KEY_ID}",
       "AWS_SECRET_ACCESS_KEY": "{AWS_SECRET_ACCESS_KEY}",
-      "JWT_SECRET": "tengrichecker-honey-jwt-secret-key-2025",
-      "SIGNING_SECRET": "tengrichecker-honey-signing-secret-2025"
+      "JWT_SECRET": "tengrichecker-network-jwt-secret-key-2025",
+      "SIGNING_SECRET": "tengrichecker-network-signing-secret-2025"
     },
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10

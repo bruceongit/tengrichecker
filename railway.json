@@ -9,9 +9,8 @@
     "healthCheckPath": "/api/health",
     "healthCheckInterval": 30,
     "env": {
-      "NETWORK_PORT": "3001",
-      "NETWORK_DATA": "/data",
       "NODE_ENV": "production",
+      "PATH": "/usr/local/bin:/usr/bin:/bin",
       "PORT": "3001",
       "DATABASE_URL": "postgresql://postgres:{DATABASE_PASSWORD}@{DATABASE_HOST}:5432/tengrichecker",
       "POSTGRES_URL": "postgresql://postgres:{DATABASE_PASSWORD}@{DATABASE_HOST}:5432/tengrichecker",

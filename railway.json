@@ -43,7 +43,7 @@
   },
   "infrastructure": {
     "commands": {
-      "postdeploy": "node server.js"
+      "postdeploy": "/usr/local/bin/node server.js"
     }
   }
 }

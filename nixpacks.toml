@@ -12,8 +12,8 @@ nixPkgs = []
 buildCommand = "npm install && npm run build"
 
 [phases.deploy]
-# Run server with node binary (uses NODE_PATH env var or falls back to 'node' in PATH)
-startCommand = "sh -c 'exec ${NODE_PATH:-node} server.js'"
+# Run server with 'node' command (available in Railway's runtime PATH)
+startCommand = "node server.js"
 
 [deploy]
 healthCheckPath = "/api/health"

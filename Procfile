@@ -1,1 +1,1 @@
-web: sh -c 'exec ${NODE_PATH:-node} server.js'
+web: node server.js

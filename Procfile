@@ -1,1 +1,1 @@
-web: /usr/local/bin/node server.js
+web: /usr/bin/node server.js
